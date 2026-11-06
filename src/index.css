@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-marca-50: #f0fdfa;
+  --color-marca-100: #ccfbf1;
+  --color-marca-200: #99f6e4;
+  --color-marca-500: #14b8a6;
+  --color-marca-600: #0d9488;
+  --color-marca-700: #0f766e;
+  --color-marca-800: #115e59;
+  --color-marca-900: #134e4a;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-800 antialiased;
+  }
+  input,
+  select,
+  textarea {
+    @apply rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-marca-600 focus:ring-2 focus:ring-marca-100 disabled:bg-stone-100;
+  }
+  table {
+    @apply w-full text-sm;
+  }
+  th {
+    @apply border-b border-stone-200 px-3 py-2 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase;
+  }
+  td {
+    @apply border-b border-stone-100 px-3 py-2;
+  }
+}
+
+@media print {
+  .no-imprimir {
+    display: none !important;
+  }
+  body {
+    @apply bg-white;
+  }
+}
