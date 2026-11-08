@@ -11,7 +11,7 @@ if (!url || !clave) {
 export const supabase = createClient(url, clave)
 
 /** Dominio interno para los correos de login (no se envían correos a estas direcciones). */
-export const DOMINIO_USUARIOS = 'usuarios.cuentavecina.pe'
+const DOMINIO_USUARIOS = 'usuarios.cuentavecina.pe'
 
 /** El login es por usuario (DNI para clientes). Si escriben un correo, se usa tal cual. */
 export function usuarioAEmail(usuario: string): string {
@@ -34,8 +34,13 @@ export function mensajeError(e: unknown): string {
 }
 
 /** Llama a la Edge Function admin-usuarios y devuelve su JSON (o lanza el mensaje de error). */
-export async function adminUsuarios<T = unknown>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('admin-usuarios', { body })
+export function adminUsuarios<T = unknown>(body: Record<string, unknown>): Promise<T> {
+  return invocar<T>('admin-usuarios', body)
+}
+
+/** Llama a una Edge Function y devuelve su JSON (o lanza el mensaje de error). */
+export async function invocar<T = unknown>(funcion: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(funcion, { body })
   if (error) {
     if (error instanceof FunctionsHttpError) {
       const detalle = await error.context.json().catch(() => null)

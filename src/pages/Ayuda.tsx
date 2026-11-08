@@ -1,5 +1,6 @@
 import { Tarjeta } from '../components/ui'
 
+// Copiadas en supabase/functions/asistente/index.ts (AYUDA): si cambian aquí, actualizar allá.
 const PREGUNTAS = [
   {
     p: '¿Cómo se decide en qué mes se paga una compra?',
@@ -34,7 +35,7 @@ const PREGUNTAS = [
 export default function Ayuda() {
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Ayuda y asistencia</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Ayuda y asistencia</h1>
       <p className="text-sm text-stone-600">
         En cada formulario, el ícono <span className="rounded-full bg-stone-200 px-1.5 text-xs font-bold">?</span> junto a cada campo
         explica qué ingresar.

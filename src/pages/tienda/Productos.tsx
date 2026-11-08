@@ -27,6 +27,7 @@ export default function Productos() {
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [filtro, setFiltro] = useState('')
+  const set = (k: keyof Form) => (e: { target: { value: string } }) => setForm((x) => x && { ...x, [k]: e.target.value })
 
   const cargar = useCallback(async () => {
     const { data, error } = await supabase.from('productos').select('*').order('nombre')
@@ -90,44 +91,51 @@ export default function Productos() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Productos y servicios</h1>
-        <div className="flex gap-2">
-          <input placeholder="Buscar…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
-          <Boton onClick={() => setForm({ ...vacio })}>+ Nuevo</Boton>
+        <h1 className="text-2xl font-bold sm:text-3xl">Productos y servicios</h1>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <input
+            type="search"
+            aria-label="Buscar producto por nombre o marca"
+            placeholder="Buscar por nombre o marca…"
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            className="min-w-0 flex-1"
+          />
+          <Boton onClick={() => setForm({ ...vacio })}>+ Nuevo producto</Boton>
         </div>
       </div>
       {error && !form && <Alerta>{error}</Alerta>}
       <Tarjeta>
         {visibles.length === 0 ? (
-          <Vacio>Aún no hay productos. Agrega el primero.</Vacio>
+          <Vacio>{lista.length ? `Ningún producto coincide con "${filtro}".` : 'Aún no hay productos. Agrega el primero con "+ Nuevo producto".'}</Vacio>
         ) : (
           <div className="overflow-x-auto">
             <table>
               <thead>
                 <tr>
-                  <th />
+                  <th><span className="sr-only">Imagen</span></th>
                   <th>Producto</th>
                   <th>Unidad</th>
                   <th className="text-right">Contado</th>
                   <th className="text-right">Crédito (lista)</th>
                   <th>Modalidad</th>
                   <th>Estado</th>
-                  <th />
+                  <th><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody>
                 {visibles.map((p) => (
-                  <tr key={p.id} className={p.estado ? '' : 'opacity-60'}>
+                  <tr key={p.id} className={p.estado ? '' : 'bg-stone-50'}>
                     <td className="w-14">
                       {p.imagen_url ? (
-                        <img src={p.imagen_url} alt={p.nombre} className="h-10 w-10 rounded-lg object-cover" />
+                        <img src={p.imagen_url} alt="" className="h-10 w-10 rounded-lg object-cover" />
                       ) : (
                         <div className="h-10 w-10 rounded-lg bg-stone-100" />
                       )}
                     </td>
                     <td>
                       <div className="font-medium">{p.nombre}</div>
-                      <div className="text-xs text-stone-500">{[p.marca, p.proveedor].filter(Boolean).join(' · ')}</div>
+                      <div className="text-xs text-stone-600">{[p.marca, p.proveedor].filter(Boolean).join(' · ')}</div>
                     </td>
                     <td>{p.unidad_medida}</td>
                     <td className="text-right">{dinero(p.precio_contado)}</td>
@@ -137,24 +145,14 @@ export default function Productos() {
                     <td className="space-x-1 text-right whitespace-nowrap">
                       <Boton
                         variante="fantasma"
+                        aria-label={`Editar ${p.nombre}`}
                         onClick={() =>
-                          setForm({
-                            id: p.id,
-                            nombre: p.nombre,
-                            descripcion: p.descripcion ?? '',
-                            marca: p.marca ?? '',
-                            proveedor: p.proveedor ?? '',
-                            unidad_medida: p.unidad_medida,
-                            precio_contado: String(p.precio_contado),
-                            precio_lista: String(p.precio_lista),
-                            modalidad_venta: p.modalidad_venta,
-                            imagen_url: p.imagen_url,
-                          })
+                          setForm({ ...p, descripcion: p.descripcion ?? '', marca: p.marca ?? '', proveedor: p.proveedor ?? '', precio_contado: String(p.precio_contado), precio_lista: String(p.precio_lista) })
                         }
                       >
                         Editar
                       </Boton>
-                      <Boton variante="secundario" onClick={() => cambiarEstado(p)}>
+                      <Boton variante="secundario" aria-label={`${p.estado ? 'Dar de baja' : 'Activar'} ${p.nombre}`} onClick={() => cambiarEstado(p)}>
                         {p.estado ? 'Dar de baja' : 'Activar'}
                       </Boton>
                     </td>
@@ -175,25 +173,25 @@ export default function Productos() {
               </div>
             )}
             <Campo etiqueta="Nombre" ayuda="Nombre del producto o servicio (p. ej. 'Arroz Costeño 5 kg' o 'Corte de cabello').">
-              <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} required maxLength={100} />
+              <input value={form.nombre} onChange={set('nombre')} required maxLength={100} />
             </Campo>
             <Campo etiqueta="Unidad de medida" ayuda="Unidad, kg, litro, paquete, servicio…">
-              <input value={form.unidad_medida} onChange={(e) => setForm({ ...form, unidad_medida: e.target.value })} required maxLength={20} />
+              <input value={form.unidad_medida} onChange={set('unidad_medida')} required maxLength={20} />
             </Campo>
-            <Campo etiqueta="Marca" ayuda="Opcional.">
-              <input value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} maxLength={50} />
+            <Campo etiqueta="Marca" opcional ayuda="Marca del producto, si tiene.">
+              <input value={form.marca} onChange={set('marca')} maxLength={50} />
             </Campo>
-            <Campo etiqueta="Proveedor" ayuda="Opcional: a quién le compras este producto.">
-              <input value={form.proveedor} onChange={(e) => setForm({ ...form, proveedor: e.target.value })} maxLength={100} />
+            <Campo etiqueta="Proveedor" opcional ayuda="A quién le compras este producto.">
+              <input value={form.proveedor} onChange={set('proveedor')} maxLength={100} />
             </Campo>
-            <Campo etiqueta="Descripción" ayuda="Detalle adicional (opcional)." className="sm:col-span-2">
-              <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} maxLength={250} />
+            <Campo etiqueta="Descripción" opcional ayuda="Detalle adicional." className="sm:col-span-2">
+              <input value={form.descripcion} onChange={set('descripcion')} maxLength={250} />
             </Campo>
             <Campo etiqueta="Precio al contado (S/)" ayuda="Precio si el cliente paga en el momento.">
-              <input type="number" step="0.01" min="0.01" value={form.precio_contado} onChange={(e) => setForm({ ...form, precio_contado: e.target.value })} required />
+              <input type="number" step="0.01" min="0.01" value={form.precio_contado} onChange={set('precio_contado')} required />
             </Campo>
             <Campo etiqueta="Precio de lista — crédito (S/)" ayuda="Precio que se usa en las ventas a crédito. Debe ser mayor o igual al precio al contado.">
-              <input type="number" step="0.01" min="0.01" value={form.precio_lista} onChange={(e) => setForm({ ...form, precio_lista: e.target.value })} required />
+              <input type="number" step="0.01" min="0.01" value={form.precio_lista} onChange={set('precio_lista')} required />
             </Campo>
             <Campo etiqueta="Modalidad de venta a crédito" ayuda="Si se puede vender para pagar en una sola armada a fin de mes (fecha de pago), en cuotas mensuales, o de ambas formas.">
               <select value={form.modalidad_venta} onChange={(e) => setForm({ ...form, modalidad_venta: Number(e.target.value) })}>
@@ -204,7 +202,7 @@ export default function Productos() {
                 ))}
               </select>
             </Campo>
-            <Campo etiqueta="Imagen" ayuda="PNG, JPG o WEBP de hasta 2 MB.">
+            <Campo etiqueta="Imagen" opcional ayuda="PNG, JPG o WEBP de hasta 2 MB. Si no eliges otra, se conserva la actual.">
               <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
             </Campo>
             <div className="flex justify-end gap-2 sm:col-span-2">

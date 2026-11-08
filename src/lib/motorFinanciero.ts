@@ -10,10 +10,8 @@
 
 import { diffDias, fechaDelMes, sumarMeses } from './fechas'
 
-export type TipoTasa = 'NOMINAL' | 'EFECTIVA'
-
 export interface Tasa {
-  tipo: TipoTasa
+  tipo: 'NOMINAL' | 'EFECTIVA'
   /** Valor en porcentaje, p. ej. 30 para 30 %. */
   valor: number
   /** Días del período de la tasa: 360 = anual, 30 = mensual, etc. */
@@ -31,16 +29,11 @@ export interface CondicionesCredito {
   horaCorte?: string
 }
 
-export const DIAS_MES = 30
+const DIAS_MES = 30
 
 /** Redondeo a 2 decimales (montos), sin errores de coma flotante del tipo 1.005 → 1.00. */
 export function r2(x: number): number {
   return Number(Math.round(Number(`${x}e2`)) + 'e-2')
-}
-
-/** Redondeo a 7 decimales (tasas) para mostrar o guardar. */
-export function r7(x: number): number {
-  return Number(Math.round(Number(`${x}e7`)) + 'e-7')
 }
 
 /**

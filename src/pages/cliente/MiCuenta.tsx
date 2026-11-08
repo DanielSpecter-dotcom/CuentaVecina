@@ -57,19 +57,19 @@ export default function MiCuenta() {
   }, [perfil?.cliente_id])
 
   if (error) return <Alerta>{error}</Alerta>
-  if (!cliente) return <p className="text-stone-500">Cargando…</p>
+  if (!cliente) return <p role="status" className="text-stone-600">Cargando…</p>
   const m = aMoneda(cliente.moneda)
   const ventasCuotas = ventas.filter((v) => v.modalidad_pago)
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Hola, {cliente.nombre.split(' ')[0]}</h1>
-        <p className="text-sm text-stone-500">Tu cuenta en {tienda?.nombre_comercial}</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">Hola, {cliente.nombre.split(' ')[0]}</h1>
+        <p className="text-sm text-stone-600">Tu cuenta en {tienda?.nombre_comercial}</p>
       </div>
 
       <Tarjeta>
-        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
           <Dato etiqueta="Deuda vigente (capital)" valor={dinero(deuda, m)} destacado />
           <Dato etiqueta="Límite de crédito" valor={dinero(cliente.limite_credito, m)} />
           <Dato etiqueta="Tasa pactada" valor={describirTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion)} />
@@ -84,7 +84,7 @@ export default function MiCuenta() {
       <Tarjeta titulo="Próximo pago">
         {ec ? <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} /> : <Vacio>No tienes pagos pendientes.</Vacio>}
         {periodos.length > 1 && (
-          <p className="mt-3 text-xs text-stone-500">
+          <p className="mt-3 text-xs text-stone-600">
             Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
           </p>
         )}
@@ -95,9 +95,9 @@ export default function MiCuenta() {
           <div className="space-y-6">
             {ventasCuotas.map((v) => (
               <div key={v.id}>
-                <div className="mb-2 flex items-center gap-2 text-sm">
+                <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                   <span className="font-medium">{v.productos?.nombre}</span>
-                  <span className="text-stone-500">
+                  <span className="text-stone-600">
                     comprado el {formatearFecha(v.fecha_compra)} · {v.num_cuotas} cuotas de {dinero(v.valor_cuota, m)}
                   </span>
                   <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
@@ -127,6 +127,7 @@ export default function MiCuenta() {
         {ventas.length === 0 ? (
           <Vacio>Aún no tienes compras registradas.</Vacio>
         ) : (
+          <div className="overflow-x-auto">
           <table>
             <thead>
               <tr>
@@ -153,6 +154,7 @@ export default function MiCuenta() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Tarjeta>
 
@@ -160,6 +162,7 @@ export default function MiCuenta() {
         {pagos.length === 0 ? (
           <Vacio>Aún no tienes pagos.</Vacio>
         ) : (
+          <div className="overflow-x-auto">
           <table>
             <thead>
               <tr>
@@ -182,6 +185,7 @@ export default function MiCuenta() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Tarjeta>
     </div>

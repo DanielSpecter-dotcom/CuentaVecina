@@ -82,7 +82,7 @@ export default function Cobranza() {
 
   return (
     <div className="space-y-4">
-      <h1 className="no-imprimir text-xl font-semibold">Cobranza y estado de cuenta</h1>
+      <h1 className="no-imprimir text-2xl font-bold sm:text-3xl">Cobranza y estado de cuenta</h1>
       {error && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -118,13 +118,14 @@ export default function Cobranza() {
                       <li key={p.fecha_pago}>
                         <button
                           onClick={() => setFechaPago(p.fecha_pago)}
+                          aria-pressed={p.fecha_pago === fechaPago}
                           className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm ${
                             p.fecha_pago === fechaPago ? 'border-marca-600 bg-marca-50' : 'border-stone-200 hover:bg-stone-50'
                           }`}
                         >
                           <span>
                             Pago {formatearFecha(p.fecha_pago)}
-                            <span className="block text-xs text-stone-500">{p.items} ítem(s)</span>
+                            <span className="block text-xs text-stone-600">{p.items} {p.items === 1 ? 'ítem' : 'ítems'}</span>
                           </span>
                           <span className="text-right">
                             <span className="block font-medium">{dinero(p.total, m)}</span>

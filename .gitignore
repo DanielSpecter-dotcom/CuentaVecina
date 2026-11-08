@@ -26,4 +26,10 @@ dist-ssr
 # Supabase CLI
 supabase/.temp
 supabase/.branches
+
+# Variables de entorno: solo se versiona la plantilla
 .env
+.env.*
+!.env.example
+
+/documentacion

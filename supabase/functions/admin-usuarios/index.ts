@@ -10,37 +10,9 @@
 //   resetear_password      (admin_sistema | admin_tienda→sus clientes) { perfil_id, password }
 //   cambiar_estado_usuario (admin_sistema | admin_tienda→sus clientes) { perfil_id, activo }
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0'
+import { clave, cors, ErrorHttp, json, responderError } from '../_shared/http.ts'
 
 const DOMINIO_USUARIOS = 'usuarios.cuentavecina.pe'
-
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-class ErrorHttp extends Error {
-  constructor(public status: number, message: string) {
-    super(message)
-  }
-}
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
-}
-
-function claveSecreta(): string {
-  const nuevas = Deno.env.get('SUPABASE_SECRET_KEYS')
-  if (nuevas) {
-    try {
-      const k = JSON.parse(nuevas)
-      if (k.default) return k.default
-    } catch { /* usa la clave legacy */ }
-  }
-  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!legacy) throw new ErrorHttp(500, 'Falta la clave secreta del proyecto')
-  return legacy
-}
 
 function normalizarUsuario(u: unknown): string {
   const usuario = String(u ?? '').trim().toLowerCase()
@@ -99,7 +71,7 @@ Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') throw new ErrorHttp(405, 'Método no permitido')
 
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, claveSecreta(), {
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, clave('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY'), {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
@@ -207,8 +179,6 @@ Deno.serve(async (req) => {
         throw new ErrorHttp(400, 'Acción no reconocida')
     }
   } catch (e) {
-    const status = e instanceof ErrorHttp ? e.status : 500
-    const mensaje = e instanceof Error ? e.message : 'Error inesperado'
-    return json({ error: mensaje }, status)
+    return responderError(e)
   }
 })

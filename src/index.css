@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Atkinson Hyperlegible: diseñada para baja visión — muchos vecinos y bodegueros leen en celulares viejos. */
+  --font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Bricolage Grotesque: aire de letrero pintado a mano de bodega, solo para títulos. */
+  --font-display: "Bricolage Grotesque", var(--font-sans);
   --color-marca-50: #f0fdfa;
   --color-marca-100: #ccfbf1;
   --color-marca-200: #99f6e4;
@@ -10,25 +13,60 @@
   --color-marca-700: #0f766e;
   --color-marca-800: #115e59;
   --color-marca-900: #134e4a;
+  /* Renglón azul y margen rojo del cuaderno de fiados (firma visual de las pantallas de acceso). */
+  --color-renglon: #c7d7ea;
+  --color-margen: #e2a3a3;
 }
 
 @layer base {
   body {
     @apply bg-stone-50 text-stone-800 antialiased;
   }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight text-stone-900;
+  }
+  /* Foco visible y consistente para teclado en todo control interactivo. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-marca-700;
+  }
+  /* 16px en móvil evita el zoom automático de iOS al enfocar un campo. */
   input,
   select,
   textarea {
-    @apply rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-marca-600 focus:ring-2 focus:ring-marca-100 disabled:bg-stone-100;
+    @apply min-h-10 rounded-lg border border-stone-400 bg-white px-3 py-2 text-base text-stone-900 transition placeholder:text-stone-600 focus:border-marca-700 focus-visible:outline-marca-700 disabled:border-stone-300 disabled:bg-stone-100 disabled:text-stone-600 sm:text-sm;
+  }
+  input[type="file"] {
+    @apply min-h-0 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-marca-50 file:px-3 file:py-1 file:font-medium file:text-marca-800;
+  }
+  input[aria-invalid="true"] {
+    @apply border-red-600;
   }
   table {
-    @apply w-full text-sm;
+    @apply w-full text-sm tabular-nums;
   }
   th {
-    @apply border-b border-stone-200 px-3 py-2 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase;
+    @apply border-b border-stone-200 px-3 py-2 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-stone-600 uppercase;
   }
   td {
     @apply border-b border-stone-100 px-3 py-2;
+  }
+}
+
+@utility cuaderno {
+  background-color: #fbfaf6;
+  background-image:
+    linear-gradient(to right, transparent 2.75rem, var(--color-margen) 2.75rem, var(--color-margen) calc(2.75rem + 1px), transparent calc(2.75rem + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0 1.75rem, var(--color-renglon) 1.75rem calc(1.75rem + 1px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
 

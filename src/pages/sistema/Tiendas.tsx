@@ -15,6 +15,7 @@ export default function Tiendas() {
   const [nuevoAdmin, setNuevoAdmin] = useState<{ tienda: Tienda; usuario: string; nombre: string; password: string } | null>(null)
   const [reset, setReset] = useState<{ perfil: Perfil; password: string } | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const set = (k: keyof typeof tiendaVacia) => (e: { target: { value: string } }) => setEdicion((x) => x && { ...x, [k]: e.target.value })
 
   const cargar = useCallback(async () => {
     const [t, a] = await Promise.all([
@@ -80,6 +81,7 @@ export default function Tiendas() {
     e.preventDefault()
     if (!reset) return
     setGuardando(true)
+    setError(null)
     try {
       await adminUsuarios({ accion: 'resetear_password', perfil_id: reset.perfil.id, password: reset.password })
       setAviso(`Contraseña de "${reset.perfil.usuario}" restablecida.`)
@@ -93,11 +95,11 @@ export default function Tiendas() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Tiendas</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold sm:text-3xl">Tiendas</h1>
         <Boton onClick={() => setEdicion({ ...tiendaVacia })}>+ Alta de tienda</Boton>
       </div>
-      {error && <Alerta>{error}</Alerta>}
+      {error && !edicion && !nuevoAdmin && !reset && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
       <Tarjeta>
         {tiendas.length === 0 ? (
@@ -113,7 +115,7 @@ export default function Tiendas() {
                   <th>Administradores</th>
                   <th>Alta</th>
                   <th>Estado</th>
-                  <th />
+                  <th><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -121,7 +123,7 @@ export default function Tiendas() {
                   <tr key={t.id}>
                     <td>
                       <div className="font-medium">{t.nombre_comercial}</div>
-                      <div className="text-xs text-stone-500">{t.direccion}</div>
+                      <div className="text-xs text-stone-600">{t.direccion}</div>
                     </td>
                     <td>{t.ruc}</td>
                     <td>{t.giro}</td>
@@ -131,16 +133,21 @@ export default function Tiendas() {
                         .map((a) => (
                           <div key={a.id} className="flex items-center gap-2">
                             <span>{a.usuario}</span>
-                            <button className="text-xs text-marca-700 hover:underline" onClick={() => setReset({ perfil: a, password: '' })}>
-                              restablecer clave
+                            <button
+                              className="min-h-8 text-xs text-marca-800 underline-offset-2 hover:underline"
+                              aria-label={`Restablecer contraseña de ${a.usuario}`}
+                              onClick={() => setReset({ perfil: a, password: '' })}
+                            >
+                              Restablecer clave
                             </button>
                           </div>
                         ))}
                       <button
-                        className="text-xs font-medium text-marca-700 hover:underline"
+                        className="min-h-8 text-xs font-medium text-marca-800 underline-offset-2 hover:underline"
+                        aria-label={`Crear administrador para ${t.nombre_comercial}`}
                         onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
                       >
-                        + crear administrador
+                        + Crear administrador
                       </button>
                     </td>
                     <td>{formatearFecha(t.created_at)}</td>
@@ -178,29 +185,30 @@ export default function Tiendas() {
       <Modal titulo={edicion?.id ? 'Editar tienda' : 'Alta de tienda'} abierto={!!edicion} onCerrar={() => setEdicion(null)}>
         {edicion && (
           <form onSubmit={guardarTienda} className="grid gap-4 sm:grid-cols-2">
+            {error && <div className="sm:col-span-2"><Alerta>{error}</Alerta></div>}
             <Campo etiqueta="Nombre comercial" ayuda="Nombre del negocio como lo conocen sus clientes.">
-              <input value={edicion.nombre_comercial} onChange={(e) => setEdicion({ ...edicion, nombre_comercial: e.target.value })} required maxLength={100} />
+              <input value={edicion.nombre_comercial} onChange={set('nombre_comercial')} required maxLength={100} />
             </Campo>
             <Campo etiqueta="RUC" ayuda="11 dígitos. Debe ser único en la plataforma.">
-              <input value={edicion.ruc} onChange={(e) => setEdicion({ ...edicion, ruc: e.target.value })} required pattern="[0-9]{11}" maxLength={11} />
+              <input value={edicion.ruc} onChange={set('ruc')} required pattern="[0-9]{11}" inputMode="numeric" maxLength={11} />
             </Campo>
             <Campo etiqueta="Giro" ayuda="Bodega, panadería, peluquería, etc.">
-              <input value={edicion.giro} onChange={(e) => setEdicion({ ...edicion, giro: e.target.value })} required maxLength={50} />
+              <input value={edicion.giro} onChange={set('giro')} required maxLength={50} />
             </Campo>
             <Campo etiqueta="Dirección" ayuda="Dirección del local.">
-              <input value={edicion.direccion} onChange={(e) => setEdicion({ ...edicion, direccion: e.target.value })} required maxLength={150} />
+              <input value={edicion.direccion} onChange={set('direccion')} required maxLength={150} />
             </Campo>
-            <Campo etiqueta="Teléfono" ayuda="Celular de 9 dígitos que empieza con 9 (opcional).">
-              <input value={edicion.telefono} onChange={(e) => setEdicion({ ...edicion, telefono: e.target.value })} pattern="9[0-9]{8}" maxLength={9} />
+            <Campo etiqueta="Teléfono" opcional ayuda="Celular de 9 dígitos que empiece con 9.">
+              <input type="tel" inputMode="numeric" value={edicion.telefono} onChange={set('telefono')} pattern="9[0-9]{8}" maxLength={9} />
             </Campo>
-            <Campo etiqueta="Correo" ayuda="Correo de contacto (opcional).">
-              <input type="email" value={edicion.correo} onChange={(e) => setEdicion({ ...edicion, correo: e.target.value })} maxLength={100} />
+            <Campo etiqueta="Correo" opcional ayuda="Correo de contacto.">
+              <input type="email" value={edicion.correo} onChange={set('correo')} maxLength={100} />
             </Campo>
             <Campo
               etiqueta="Hora de corte"
               ayuda="Hora límite (hora de Lima) del día de corte. Las compras del día de corte posteriores a esta hora pasan al mes siguiente."
             >
-              <input type="time" step={1} value={edicion.hora_corte} onChange={(e) => setEdicion({ ...edicion, hora_corte: e.target.value })} required />
+              <input type="time" step={1} value={edicion.hora_corte} onChange={set('hora_corte')} required />
             </Campo>
             <div className="flex items-end justify-end gap-2 sm:col-span-2">
               <Boton type="button" variante="secundario" onClick={() => setEdicion(null)}>
@@ -217,6 +225,7 @@ export default function Tiendas() {
       <Modal titulo={`Nuevo administrador — ${nuevoAdmin?.tienda.nombre_comercial ?? ''}`} abierto={!!nuevoAdmin} onCerrar={() => setNuevoAdmin(null)} ancho="max-w-md">
         {nuevoAdmin && (
           <form onSubmit={crearAdmin} className="space-y-4">
+            {error && <Alerta>{error}</Alerta>}
             <Campo etiqueta="Usuario" ayuda="Con este nombre iniciará sesión (sugerido: su DNI). 3 a 40 caracteres: letras, números, punto o guion.">
               <input value={nuevoAdmin.usuario} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, usuario: e.target.value })} required pattern="[A-Za-z0-9._\-]{3,40}" />
             </Campo>
@@ -224,7 +233,7 @@ export default function Tiendas() {
               <input value={nuevoAdmin.nombre} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, nombre: e.target.value })} required maxLength={100} />
             </Campo>
             <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. Entrégasela al responsable; no se envía ningún correo.">
-              <input type="text" value={nuevoAdmin.password} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, password: e.target.value })} required minLength={8} />
+              <input type="text" autoComplete="new-password" value={nuevoAdmin.password} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, password: e.target.value })} required minLength={8} />
             </Campo>
             <Boton type="submit" cargando={guardando} className="w-full">
               Crear administrador
@@ -236,8 +245,9 @@ export default function Tiendas() {
       <Modal titulo={`Restablecer contraseña — ${reset?.perfil.usuario ?? ''}`} abierto={!!reset} onCerrar={() => setReset(null)} ancho="max-w-md">
         {reset && (
           <form onSubmit={restablecer} className="space-y-4">
+            {error && <Alerta>{error}</Alerta>}
             <Campo etiqueta="Nueva contraseña" ayuda="Mínimo 8 caracteres.">
-              <input type="text" value={reset.password} onChange={(e) => setReset({ ...reset, password: e.target.value })} required minLength={8} />
+              <input type="text" autoComplete="new-password" value={reset.password} onChange={(e) => setReset({ ...reset, password: e.target.value })} required minLength={8} />
             </Campo>
             <Boton type="submit" cargando={guardando} className="w-full">
               Restablecer

@@ -29,7 +29,7 @@ export function CamposTasa({ titulo, valor, onChange, ayudaValor }: {
   return (
     <fieldset className="rounded-xl border border-stone-200 p-4">
       <legend className="px-1 text-sm font-medium">{titulo}</legend>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Campo etiqueta="Tipo" ayuda="Efectiva: ya incluye la capitalización. Nominal: se capitaliza según el período de capitalización que indiques.">
           <select
             value={valor.nominal ? 'N' : 'E'}
@@ -69,7 +69,7 @@ export function CamposTasa({ titulo, valor, onChange, ayudaValor }: {
           </select>
         </Campo>
       </div>
-      {tea && <p className="mt-2 text-xs text-stone-500">Equivale a una TEA de {tea}</p>}
+      {tea && <p className="mt-2 text-xs text-stone-600">Equivale a una TEA de {tea}</p>}
     </fieldset>
   )
 }

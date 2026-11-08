@@ -1,7 +1,7 @@
 // Utilidades de fechas. Todas las fechas de negocio se manejan como 'YYYY-MM-DD'
 // en hora de Lima (America/Lima), porque la fecha de corte depende del día local.
 
-export const ZONA_HORARIA = 'America/Lima'
+const ZONA_HORARIA = 'America/Lima'
 
 const MS_DIA = 86_400_000
 

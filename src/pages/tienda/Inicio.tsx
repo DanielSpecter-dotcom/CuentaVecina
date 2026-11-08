@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Alerta, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
@@ -64,41 +64,43 @@ export default function Inicio() {
     cargar()
   }, [])
 
-  const porFecha = useMemo(() => {
-    const g = new Map<string, Fila[]>()
-    for (const f of filas) g.set(f.fechaPago, [...(g.get(f.fechaPago) ?? []), f])
-    return [...g.entries()]
-  }, [filas])
+  const porFecha = [...Map.groupBy(filas, (f) => f.fechaPago)]
 
-  const total = r2(filas.reduce((s, f) => s + f.capital + f.interes, 0))
-  const vencido = r2(filas.filter((f) => f.fechaPago < hoy).reduce((s, f) => s + f.capital + f.interes, 0))
+  // Soles y dólares no se suman entre sí: cada moneda tiene su propio total.
+  const sumar = (lista: Fila[], usd: boolean) => r2(lista.filter((f) => f.cliente.moneda === usd).reduce((s, f) => s + f.capital + f.interes, 0))
+  const vencidas = filas.filter((f) => f.fechaPago < hoy)
+  const total = { PEN: sumar(filas, false), USD: sumar(filas, true) }
+  const vencido = { PEN: sumar(vencidas, false), USD: sumar(vencidas, true) }
+  const hayUsd = filas.some((f) => f.cliente.moneda)
   const proxima = filas.find((f) => f.fechaPago >= hoy)?.fechaPago
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">{tienda?.nombre_comercial}</h1>
-        <p className="text-sm text-stone-500">
+        <h1 className="text-2xl font-bold sm:text-3xl">{tienda?.nombre_comercial}</h1>
+        <p className="text-sm text-stone-600">
           {tienda?.giro} · RUC {tienda?.ruc}
         </p>
       </div>
       {error && <Alerta>{error}</Alerta>}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Tarjeta>
-          <div className="text-xs text-stone-500">Clientes activos</div>
-          <div className="text-2xl font-semibold">{numClientes}</div>
+          <div className="text-xs text-stone-600">Clientes activos</div>
+          <div className="text-xl font-semibold tabular-nums sm:text-2xl">{numClientes}</div>
         </Tarjeta>
         <Tarjeta>
-          <div className="text-xs text-stone-500">Por cobrar (sin mora)</div>
-          <div className="text-2xl font-semibold text-marca-800">{dinero(total)}</div>
+          <div className="text-xs text-stone-600">Por cobrar (sin mora)</div>
+          <div className="text-xl font-semibold tabular-nums sm:text-2xl text-marca-800">{dinero(total.PEN)}</div>
+          {hayUsd && <div className="text-lg font-semibold tabular-nums text-marca-800">{dinero(total.USD, 'USD')}</div>}
         </Tarjeta>
         <Tarjeta>
-          <div className="text-xs text-stone-500">Vencido</div>
-          <div className={`text-2xl font-semibold ${vencido > 0 ? 'text-red-700' : ''}`}>{dinero(vencido)}</div>
+          <div className="text-xs text-stone-600">Vencido</div>
+          <div className={`text-xl font-semibold tabular-nums sm:text-2xl ${vencido.PEN > 0 ? 'text-red-700' : ''}`}>{dinero(vencido.PEN)}</div>
+          {hayUsd && <div className={`text-lg font-semibold tabular-nums ${vencido.USD > 0 ? 'text-red-700' : ''}`}>{dinero(vencido.USD, 'USD')}</div>}
         </Tarjeta>
         <Tarjeta>
-          <div className="text-xs text-stone-500">Próxima fecha de pago</div>
-          <div className="text-2xl font-semibold">{proxima ? formatearFecha(proxima) : '—'}</div>
+          <div className="text-xs text-stone-600">Próxima fecha de pago</div>
+          <div className="text-xl font-semibold tabular-nums sm:text-2xl">{proxima ? formatearFecha(proxima) : '—'}</div>
         </Tarjeta>
       </div>
 
@@ -115,6 +117,7 @@ export default function Inicio() {
                   Pago del {formatearFecha(fecha)}
                   {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
                 </h3>
+                <div className="overflow-x-auto">
                 <table>
                   <thead>
                     <tr>
@@ -134,7 +137,7 @@ export default function Inicio() {
                             <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="text-marca-800 hover:underline">
                               {f.cliente.nombre}
                             </Link>
-                            <span className="ml-2 text-xs text-stone-500">DNI {f.cliente.documento}</span>
+                            <span className="ml-2 text-xs text-stone-600">DNI {f.cliente.documento}</span>
                           </td>
                           <td className="text-right">{f.items}</td>
                           <td className="text-right">{dinero(f.capital, m)}</td>
@@ -145,6 +148,7 @@ export default function Inicio() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>

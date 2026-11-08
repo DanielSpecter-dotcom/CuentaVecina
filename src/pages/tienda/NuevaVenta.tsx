@@ -98,7 +98,7 @@ export default function NuevaVenta() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Nueva venta a crédito</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Nueva venta a crédito</h1>
       {registrada && (
         <Alerta tipo="exito">
           Venta registrada.{' '}
@@ -139,7 +139,7 @@ export default function NuevaVenta() {
                 ))}
               </select>
             </Campo>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-[7rem_1fr]">
               <Campo etiqueta="Cantidad" ayuda="Número de unidades.">
                 <input type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} required />
               </Campo>
@@ -167,7 +167,7 @@ export default function NuevaVenta() {
 
         <Tarjeta titulo="Simulación" className="lg:col-span-3">
           {!simulacion ? (
-            <p className="text-sm text-stone-500">Elige cliente y producto para ver el cálculo.</p>
+            <p className="text-sm text-stone-600">Elige cliente y producto para ver el cálculo.</p>
           ) : (
             <div className="space-y-4">
               <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
@@ -199,7 +199,7 @@ export default function NuevaVenta() {
                   <Cronograma filas={simulacion.cronograma} moneda={m} />
                 </>
               )}
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-stone-600">
                 Simulación en el navegador. Al registrar, la base de datos recalcula con las mismas fórmulas y guarda el resultado oficial.
               </p>
             </div>

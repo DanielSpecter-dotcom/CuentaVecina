@@ -1,18 +1,10 @@
 import type { Moneda } from '../lib/codigos'
 import { formatearFecha } from '../lib/fechas'
 import { dinero } from '../lib/formato'
+import type { FilaCronograma } from '../lib/motorFinanciero'
 import { Etiqueta } from './ui'
 
-export interface FilaCrono {
-  numero: number
-  fechaVencimiento: string
-  saldoInicial: number
-  interes: number
-  amortizacion: number
-  cuota: number
-  saldoFinal: number
-  estado?: 'pendiente' | 'pagado'
-}
+type FilaCrono = FilaCronograma & { estado?: 'pendiente' | 'pagado' }
 
 export function Cronograma({ filas, moneda = 'PEN' }: { filas: FilaCrono[]; moneda?: Moneda }) {
   const total = (k: 'interes' | 'amortizacion' | 'cuota') => filas.reduce((s, f) => s + Number(f[k]), 0)

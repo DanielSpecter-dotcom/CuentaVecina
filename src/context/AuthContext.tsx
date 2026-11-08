@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase, usuarioAEmail } from '../lib/supabase'
 import type { Perfil, Tienda } from '../types'
 
@@ -20,30 +20,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [tienda, setTienda] = useState<Tienda | null>(null)
 
-  const cargarPerfil = useCallback(async (s: Session | null) => {
-    setSesion(s)
-    if (!s) {
-      setPerfil(null)
-      setTienda(null)
-      setCargando(false)
-      return
-    }
-    const { data: p } = await supabase
-      .from('perfiles')
-      .select('id, rol, tienda_id, cliente_id, nombre, usuario, activo')
-      .eq('id', s.user.id)
-      .maybeSingle()
-    setPerfil((p as Perfil | null) ?? null)
-    if (p?.tienda_id) {
-      const { data: t } = await supabase.from('tiendas').select('*').eq('id', p.tienda_id).maybeSingle()
-      setTienda((t as Tienda | null) ?? null)
-    } else {
-      setTienda(null)
-    }
-    setCargando(false)
-  }, [])
-
   useEffect(() => {
+    async function cargarPerfil(s: Session | null) {
+      setSesion(s)
+      if (!s) {
+        setPerfil(null)
+        setTienda(null)
+        setCargando(false)
+        return
+      }
+      const { data: p } = await supabase
+        .from('perfiles')
+        .select('id, rol, tienda_id, cliente_id, nombre, usuario, activo')
+        .eq('id', s.user.id)
+        .maybeSingle()
+      setPerfil((p as Perfil | null) ?? null)
+      if (p?.tienda_id) {
+        const { data: t } = await supabase.from('tiendas').select('*').eq('id', p.tienda_id).maybeSingle()
+        setTienda((t as Tienda | null) ?? null)
+      } else {
+        setTienda(null)
+      }
+      setCargando(false)
+    }
+
     supabase.auth.getSession().then(({ data }) => cargarPerfil(data.session))
     const { data: sub } = supabase.auth.onAuthStateChange((evento, s) => {
       // Solo recargar el perfil cuando cambia el usuario (no en cada refresco de token).
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
     return () => sub.subscription.unsubscribe()
-  }, [cargarPerfil])
+  }, [])
 
   const iniciarSesion = async (usuario: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: usuarioAEmail(usuario), password })

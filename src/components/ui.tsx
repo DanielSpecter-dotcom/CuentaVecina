@@ -1,69 +1,75 @@
 // Componentes de interfaz reutilizables.
-// <Campo ayuda="..."> muestra un ícono "?" con la explicación de cada campo
+// <Campo ayuda="..."> muestra un botón "?" que despliega la explicación de cada campo
 // (requisito del enunciado: ayuda en cada campo de las ventanas de diálogo).
-import { useId, useState, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react'
 import { cloneElement, isValidElement } from 'react'
-
-export function Ayuda({ texto }: { texto: string }) {
-  const [abierta, setAbierta] = useState(false)
-  return (
-    <span className="relative inline-flex">
-      <button
-        type="button"
-        aria-label={`Ayuda: ${texto}`}
-        className="no-imprimir ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-600 hover:bg-marca-100 hover:text-marca-800"
-        onClick={() => setAbierta((v) => !v)}
-        onMouseEnter={() => setAbierta(true)}
-        onMouseLeave={() => setAbierta(false)}
-        onBlur={() => setAbierta(false)}
-      >
-        ?
-      </button>
-      {abierta && (
-        <span
-          role="tooltip"
-          className="absolute top-6 left-1/2 z-30 w-64 -translate-x-1/2 rounded-lg bg-stone-900 px-3 py-2 text-xs leading-relaxed font-normal text-white shadow-lg"
-        >
-          {texto}
-        </span>
-      )}
-    </span>
-  )
-}
 
 export function Campo({
   etiqueta,
   ayuda,
   error,
+  opcional,
   children,
   className = '',
 }: {
   etiqueta: string
   ayuda?: string
   error?: string | null
-  children: ReactElement<{ id?: string }>
+  /** Agrega "(opcional)" a la etiqueta para que se distinga de un vistazo. */
+  opcional?: boolean
+  children: ReactElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>
   className?: string
 }) {
   const id = useId()
-  const control = isValidElement(children) ? cloneElement(children, { id }) : children
+  const [verAyuda, setVerAyuda] = useState(false)
+  // La ayuda siempre describe al control (lectores de pantalla); visualmente se despliega con "?".
+  const describedBy = [ayuda && `${id}-ayuda`, error && `${id}-error`].filter(Boolean).join(' ') || undefined
+  const control = isValidElement(children)
+    ? cloneElement(children, { id, 'aria-describedby': describedBy, 'aria-invalid': error ? true : undefined })
+    : children
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className="flex items-center text-xs font-medium text-stone-600">
-        {etiqueta}
-        {ayuda && <Ayuda texto={ayuda} />}
-      </label>
+    <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
+      <div className="flex items-center gap-1">
+        <label htmlFor={id} className="text-sm font-medium text-stone-700">
+          {etiqueta}
+          {opcional && <span className="font-normal text-stone-600"> (opcional)</span>}
+        </label>
+        {ayuda && (
+          <button
+            type="button"
+            aria-label={`Ayuda sobre ${etiqueta}`}
+            aria-expanded={verAyuda}
+            aria-controls={`${id}-ayuda`}
+            className={`no-imprimir inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
+              verAyuda ? 'bg-marca-700 text-white' : 'bg-stone-200 text-stone-700 hover:bg-marca-100 hover:text-marca-900'
+            }`}
+            onClick={() => setVerAyuda((v) => !v)}
+          >
+            ?
+          </button>
+        )}
+      </div>
+      {ayuda && (
+        <p id={`${id}-ayuda`} hidden={!verAyuda} className="rounded-md bg-marca-50 px-2.5 py-1.5 text-xs leading-relaxed text-marca-900">
+          {ayuda}
+        </p>
+      )}
       {control}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && (
+        <span id={`${id}-error`} className="text-xs font-medium text-red-700">
+          {error}
+        </span>
+      )}
     </div>
   )
 }
 
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma'
 const estilos: Record<Variante, string> = {
-  primario: 'bg-marca-700 text-white hover:bg-marca-800 disabled:bg-stone-300',
-  secundario: 'border border-stone-300 bg-white text-stone-700 hover:bg-stone-50',
-  peligro: 'bg-red-600 text-white hover:bg-red-700',
-  fantasma: 'text-marca-700 hover:bg-marca-50',
+  primario: 'bg-marca-700 text-white hover:bg-marca-800 disabled:bg-stone-200 disabled:text-stone-600',
+  secundario: 'border border-stone-400 bg-white text-stone-800 hover:bg-stone-100 disabled:text-stone-600',
+  peligro: 'bg-red-700 text-white hover:bg-red-800 disabled:bg-stone-200 disabled:text-stone-600',
+  fantasma: 'text-marca-800 hover:bg-marca-50 disabled:text-stone-600',
 }
 
 export function Boton({
@@ -75,9 +81,11 @@ export function Boton({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variante?: Variante; cargando?: boolean }) {
   return (
     <button
+      type="button"
       {...props}
       disabled={props.disabled || cargando}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed ${estilos[variante]} ${className}`}
+      aria-busy={cargando || undefined}
+      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed ${estilos[variante]} ${className}`}
     >
       {cargando ? 'Procesando…' : children}
     </button>
@@ -91,10 +99,10 @@ export function Tarjeta({ titulo, acciones, children, className = '' }: {
   className?: string
 }) {
   return (
-    <section className={`rounded-2xl border border-stone-200 bg-white p-5 shadow-sm ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5 ${className}`}>
       {(titulo || acciones) && (
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {titulo && <h2 className="text-base font-semibold text-stone-800">{titulo}</h2>}
+          {titulo && <h2 className="text-lg font-semibold">{titulo}</h2>}
           {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
         </header>
       )}
@@ -105,13 +113,19 @@ export function Tarjeta({ titulo, acciones, children, className = '' }: {
 
 export function Alerta({ tipo = 'error', children }: { tipo?: 'error' | 'exito' | 'info'; children: ReactNode }) {
   const c = {
-    error: 'border-red-200 bg-red-50 text-red-800',
-    exito: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    info: 'border-sky-200 bg-sky-50 text-sky-800',
+    error: 'border-red-300 bg-red-50 text-red-900',
+    exito: 'border-emerald-300 bg-emerald-50 text-emerald-900',
+    info: 'border-sky-300 bg-sky-50 text-sky-900',
   }[tipo]
-  return <div className={`rounded-lg border px-4 py-3 text-sm ${c}`}>{children}</div>
+  // Los errores se anuncian de inmediato; los avisos, sin interrumpir.
+  return (
+    <div role={tipo === 'error' ? 'alert' : 'status'} className={`rounded-lg border px-4 py-3 text-sm ${c}`}>
+      {children}
+    </div>
+  )
 }
 
+/** Diálogo nativo: el navegador da foco atrapado, cierre con Escape y fondo inerte. */
 export function Modal({ titulo, abierto, onCerrar, children, ancho = 'max-w-2xl' }: {
   titulo: string
   abierto: boolean
@@ -119,42 +133,64 @@ export function Modal({ titulo, abierto, onCerrar, children, ancho = 'max-w-2xl'
   children: ReactNode
   ancho?: string
 }) {
-  if (!abierto) return null
+  const ref = useRef<HTMLDialogElement>(null)
+  const idTitulo = useId()
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (abierto && !d.open) d.showModal()
+    if (!abierto && d.open) d.close()
+  }, [abierto])
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-stone-900/40 p-4 sm:p-10">
-      <div className={`w-full ${ancho} rounded-2xl bg-white shadow-xl`} role="dialog" aria-modal="true" aria-label={titulo}>
-        <header className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-          <h3 className="font-semibold">{titulo}</h3>
-          <button onClick={onCerrar} className="rounded-lg px-2 text-xl text-stone-400 hover:bg-stone-100" aria-label="Cerrar">
-            ×
-          </button>
-        </header>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
+    <dialog
+      ref={ref}
+      onClose={() => abierto && onCerrar()}
+      aria-labelledby={idTitulo}
+      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] ${ancho} overflow-y-auto rounded-2xl bg-white p-0 text-stone-800 shadow-xl backdrop:bg-stone-900/50`}
+    >
+      {abierto && (
+        <>
+          <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-stone-200 bg-white px-5 py-4">
+            <h3 id={idTitulo} className="text-lg font-semibold">
+              {titulo}
+            </h3>
+            <button
+              type="button"
+              onClick={onCerrar}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-2xl text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+              aria-label="Cerrar"
+            >
+              ×
+            </button>
+          </header>
+          <div className="p-5">{children}</div>
+        </>
+      )}
+    </dialog>
   )
 }
 
 export function Etiqueta({ color = 'gris', children }: { color?: 'gris' | 'verde' | 'rojo' | 'ambar' | 'azul'; children: ReactNode }) {
   const c = {
-    gris: 'bg-stone-100 text-stone-700',
-    verde: 'bg-emerald-100 text-emerald-800',
-    rojo: 'bg-red-100 text-red-800',
-    ambar: 'bg-amber-100 text-amber-800',
-    azul: 'bg-sky-100 text-sky-800',
+    gris: 'bg-stone-100 text-stone-800',
+    verde: 'bg-emerald-100 text-emerald-900',
+    rojo: 'bg-red-100 text-red-900',
+    ambar: 'bg-amber-100 text-amber-900',
+    azul: 'bg-sky-100 text-sky-900',
   }[color]
-  return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${c}`}>{children}</span>
+  // Los estados llegan de la BD en minúsculas ("pendiente") o mayúsculas ("PENDIENTE"): se muestran siempre como "Pendiente".
+  return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap lowercase first-letter:uppercase ${c}`}>{children}</span>
 }
 
 export function Vacio({ children }: { children: ReactNode }) {
-  return <p className="py-8 text-center text-sm text-stone-400">{children}</p>
+  return <p className="py-8 text-center text-sm text-stone-600">{children}</p>
 }
 
 export function Dato({ etiqueta, valor, destacado }: { etiqueta: string; valor: ReactNode; destacado?: boolean }) {
   return (
-    <div>
-      <dt className="text-xs text-stone-500">{etiqueta}</dt>
-      <dd className={destacado ? 'text-lg font-semibold text-marca-800' : 'font-medium'}>{valor}</dd>
+    <div className="min-w-0">
+      <dt className="text-xs text-stone-600">{etiqueta}</dt>
+      <dd className={`tabular-nums ${destacado ? 'text-lg font-semibold text-marca-800' : 'font-medium'}`}>{valor}</dd>
     </div>
   )
 }

@@ -49,10 +49,30 @@ src/
 supabase/
   migrations/002_*.sql        Motor financiero en BD, RLS, auditoría, solicitudes, Storage (ya aplicada)
   migrations/003_*.sql        Ajuste de fn_deuda_vigente (ya aplicada)
-  functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves (ya desplegada)
+  migrations/004_*.sql        Quita al rol anon todo permiso salvo enviar solicitudes (defensa en profundidad)
+  functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
+  functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves
+  functions/asistente/        Edge Function: chat de ayuda (modelo de NVIDIA); a los clientes les lee su cuenta con su propio token
 ```
 
-## 4. Decisiones de diseño (para el informe y la exposición)
+## 4. Seguridad
+
+| Valor | Dónde vive | ¿Es secreto? |
+|---|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | `.env.local` → se incrustan en el JS del navegador | **No.** Son públicas por diseño; lo que protege los datos es RLS. |
+| Secret key / `service_role` | Solo en las Edge Functions (Supabase la inyecta) | **Sí.** Nunca en el frontend ni en git. |
+| `NVIDIA_API_KEY` | Secret de Supabase (`supabase secrets set`) | **Sí.** |
+| `ORIGEN_PERMITIDO` | Secret de Supabase | No; restringe CORS al dominio desplegado. |
+
+- Todas las tablas tienen RLS y cada política exige rol **y** tienda/cliente. Ventas, cuotas y pagos no tienen política de
+  escritura: solo se escriben por `registrar_venta` / `registrar_pago`, que verifican quién llama.
+- Las funciones `security definer` que el linter de Supabase marca (`fn_rol_actual`, `fn_deuda_vigente`, `registrar_*`…) son
+  intencionales: validan `auth.uid()` por dentro y solo devuelven datos del propio usuario o de su tienda.
+- Las Edge Functions no devuelven detalles de errores internos (solo los registran en los logs).
+- Solo `.env.example` se versiona (`.gitignore` excluye `.env` y `.env.*`).
+
+
+## 5. Decisiones de diseño (para el informe y la exposición)
 
 - **El cálculo oficial vive en PostgreSQL** (`simular_venta`, `registrar_venta`, `estado_cuenta`, `registrar_pago`).
   El navegador muestra una simulación con `motorFinanciero.ts`, pero al guardar la BD recalcula todo; nadie puede
@@ -67,10 +87,12 @@ supabase/
 - **Interés moratorio:** tasa moratoria pactada sobre el total del período por los días de atraso. *Pendiente confirmar
   con el docente* si durante la mora también corre el interés compensatorio.
 
-## 5. Pendiente para la versión final
+## 6. Pendiente para la versión final
 
 - Cargar las tasas máximas BCRP vigentes (pantalla *Tasas BCRP*). Ojo: un comercio no es entidad financiera; revisar
   qué tope aplica ("operaciones entre personas ajenas al sistema financiero").
 - Precios de productos para clientes en dólares (hoy el catálogo está en soles).
 - PWA (instalable/offline) y despliegue (Vercel/Netlify).
 - Generar los tipos de la BD (`supabase gen types`) para tipar el cliente de Supabase.
+- Versionar el esquema base: la migración `001` (tablas) se aplicó desde el panel y no está en el repo.
+  Recuperarla con `supabase db pull` para que el proyecto se pueda reconstruir desde cero.

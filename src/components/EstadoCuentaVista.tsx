@@ -10,9 +10,9 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          {tienda && <div className="text-xs tracking-wide text-stone-500 uppercase">{tienda}</div>}
+          {tienda && <div className="text-xs tracking-wide text-stone-600 uppercase">{tienda}</div>}
           <div className="text-lg font-semibold">{ec.cliente}</div>
-          <div className="text-sm text-stone-500">DNI {ec.documento}</div>
+          <div className="text-sm text-stone-600">DNI {ec.documento}</div>
         </div>
         <dl className="grid grid-cols-3 gap-4 text-sm">
           <Dato etiqueta="Fecha de corte" valor={formatearFecha(ec.fechaCorte)} />
@@ -76,7 +76,7 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
           </tfoot>
         </table>
       </div>
-      <p className="text-xs text-stone-500">
+      <p className="text-xs text-stone-600">
         Imputación del pago (prelación): mora {dinero(ec.interesMoratorio, m)} → interés compensatorio {dinero(ec.interesCompensatorio, m)} →
         capital {dinero(ec.capital, m)}.
       </p>

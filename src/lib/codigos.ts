@@ -17,20 +17,11 @@ export function diasPeriodo(codigo: number): number {
   return PERIODOS[codigo]?.dias ?? 360
 }
 
-export function nombrePeriodo(codigo: number | null | undefined): string {
-  return codigo == null ? '—' : (PERIODOS[codigo]?.nombre ?? '—')
-}
-
-/** tipo_tasa: false = Efectiva, true = Nominal */
-export function nombreTipoTasa(nominal: boolean): string {
-  return nominal ? 'Nominal' : 'Efectiva'
-}
-
 /** Ej.: "TEA 30 %" o "TNA 24 % cap. diaria". */
 export function describirTasa(nominal: boolean, valor: number, periodo: number, cap: number | null): string {
-  const letraPeriodo = ['D', 'Q', 'M', 'B', 'T', 'C', 'S', 'A'][periodo] ?? '?'
-  const sigla = `T${nominal ? 'N' : 'E'}${letraPeriodo}`
-  return nominal ? `${sigla} ${valor} % cap. ${nombrePeriodo(cap).toLowerCase()}` : `${sigla} ${valor} %`
+  // La inicial del período forma la sigla: TEA, TNM, TEQ…
+  const sigla = `T${nominal ? 'N' : 'E'}${PERIODOS[periodo]?.nombre[0] ?? '?'}`
+  return nominal ? `${sigla} ${valor} % cap. ${cap == null ? '—' : (PERIODOS[cap]?.nombre.toLowerCase() ?? '—')}` : `${sigla} ${valor} %`
 }
 
 /** moneda: false = Soles, true = Dólares */
