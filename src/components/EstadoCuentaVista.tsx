@@ -14,7 +14,7 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
           <div className="text-lg font-semibold">{ec.cliente}</div>
           <div className="text-sm text-stone-600">DNI {ec.documento}</div>
         </div>
-        <dl className="grid grid-cols-3 gap-4 text-sm">
+        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
           <Dato etiqueta="Fecha de corte" valor={formatearFecha(ec.fechaCorte)} />
           <Dato etiqueta="Fecha de pago" valor={formatearFecha(ec.fechaPago)} />
           <Dato

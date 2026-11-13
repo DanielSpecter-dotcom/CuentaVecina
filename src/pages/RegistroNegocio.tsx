@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Logo } from '../components/Layout'
 import { Alerta, Boton, Campo } from '../components/ui'
@@ -24,7 +24,7 @@ export default function RegistroNegocio() {
   const [enviando, setEnviando] = useState(false)
   const set = (k: keyof typeof vacio) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
 
-  async function enviar(e: FormEvent) {
+  async function enviar(e: SubmitEvent) {
     e.preventDefault()
     setError(null)
     setEnviando(true)

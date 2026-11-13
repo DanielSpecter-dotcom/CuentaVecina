@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Cronograma } from '../../components/Cronograma'
 import { Alerta, Boton, Campo, Dato, Etiqueta, Tarjeta } from '../../components/ui'
@@ -75,7 +75,7 @@ export default function NuevaVenta() {
   const excede = simulacion && disponible != null && simulacion.capital > disponible
   const cuotasInvalidas = enCuotas && cliente && (Number(numCuotas) < 1 || Number(numCuotas) > cliente.plazo_max_meses)
 
-  async function registrar(e: FormEvent) {
+  async function registrar(e: SubmitEvent) {
     e.preventDefault()
     if (!cliente || !producto) return
     setError(null)

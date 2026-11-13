@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { CamposTasa, type ValorTasa } from '../../components/CamposTasa'
 import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
@@ -83,7 +83,7 @@ export default function Clientes() {
     cargar()
   }, [cargar])
 
-  async function guardar(e: FormEvent) {
+  async function guardar(e: SubmitEvent) {
     e.preventDefault()
     if (!form || !tienda) return
     setError(null)
@@ -125,7 +125,7 @@ export default function Clientes() {
     else cargar()
   }
 
-  async function gestionarCuenta(e: FormEvent) {
+  async function gestionarCuenta(e: SubmitEvent) {
     e.preventDefault()
     if (!cuenta) return
     setGuardando(true)

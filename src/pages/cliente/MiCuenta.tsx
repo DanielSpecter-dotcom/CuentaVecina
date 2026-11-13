@@ -143,7 +143,7 @@ export default function MiCuenta() {
                 <tr key={v.id}>
                   <td>{formatearFecha(v.fecha_compra)}</td>
                   <td>
-                    {v.productos?.nombre} × {v.cantidad}
+                    {v.productos?.nombre} &times; {v.cantidad}
                   </td>
                   <td>{v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`}</td>
                   <td className="text-right">{dinero(v.monto_capital, m)}</td>

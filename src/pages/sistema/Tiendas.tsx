@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
@@ -31,7 +31,7 @@ export default function Tiendas() {
     cargar()
   }, [cargar])
 
-  async function guardarTienda(e: FormEvent) {
+  async function guardarTienda(e: SubmitEvent) {
     e.preventDefault()
     if (!edicion) return
     setGuardando(true)
@@ -54,7 +54,7 @@ export default function Tiendas() {
     else cargar()
   }
 
-  async function crearAdmin(e: FormEvent) {
+  async function crearAdmin(e: SubmitEvent) {
     e.preventDefault()
     if (!nuevoAdmin) return
     setGuardando(true)
@@ -77,7 +77,7 @@ export default function Tiendas() {
     }
   }
 
-  async function restablecer(e: FormEvent) {
+  async function restablecer(e: SubmitEvent) {
     e.preventDefault()
     if (!reset) return
     setGuardando(true)

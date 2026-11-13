@@ -52,6 +52,26 @@
   td {
     @apply border-b border-stone-100 px-3 py-2;
   }
+  /* Celular: celdas más compactas y la primera columna fija, para no perder de vista
+     a qué fila pertenece lo que se ve al deslizar la tabla. Las filas con color
+     propio (bg-*) lo heredan a la celda fija. */
+  @media (width < 40rem) {
+    th,
+    td {
+      @apply px-2;
+    }
+    tr {
+      @apply bg-white;
+    }
+    th:first-child,
+    td:first-child {
+      @apply sticky left-0 z-1 shadow-[1px_0_0_var(--color-stone-200)];
+      background-color: inherit;
+    }
+    thead th:first-child {
+      @apply bg-white;
+    }
+  }
 }
 
 @utility cuaderno {

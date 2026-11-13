@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Logo } from '../components/Layout'
 import { Alerta, Boton, Campo } from '../components/ui'
@@ -16,7 +16,7 @@ export default function Login() {
 
   if (!cargando && sesion && perfil) return <Navigate to={INICIO_POR_ROL[perfil.rol]} replace />
 
-  async function enviar(e: FormEvent) {
+  async function enviar(e: SubmitEvent) {
     e.preventDefault()
     setError(null)
     setEnviando(true)

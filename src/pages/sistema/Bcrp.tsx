@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Alerta, Boton, Campo, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { mensajeError, supabase } from '../../lib/supabase'
@@ -32,7 +32,7 @@ export default function Bcrp() {
     cargar()
   }, [cargar])
 
-  async function guardar(e: FormEvent) {
+  async function guardar(e: SubmitEvent) {
     e.preventDefault()
     setGuardando(true)
     setError(null)

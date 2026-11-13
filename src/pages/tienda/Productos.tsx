@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { MODALIDADES_PRODUCTO } from '../../lib/codigos'
@@ -39,7 +39,7 @@ export default function Productos() {
     cargar()
   }, [cargar])
 
-  async function guardar(e: FormEvent) {
+  async function guardar(e: SubmitEvent) {
     e.preventDefault()
     if (!form || !tienda) return
     setError(null)

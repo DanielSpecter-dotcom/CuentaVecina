@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
@@ -35,7 +35,7 @@ export default function Solicitudes() {
     cargar()
   }, [cargar])
 
-  async function confirmarAprobacion(e: FormEvent) {
+  async function confirmarAprobacion(e: SubmitEvent) {
     e.preventDefault()
     if (!aprobar) return
     setGuardando(true)
@@ -52,7 +52,7 @@ export default function Solicitudes() {
     }
   }
 
-  async function confirmarRechazo(e: FormEvent) {
+  async function confirmarRechazo(e: SubmitEvent) {
     e.preventDefault()
     if (!rechazo) return
     setGuardando(true)

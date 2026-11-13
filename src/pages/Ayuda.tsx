@@ -8,7 +8,7 @@ const PREGUNTAS = [
   },
   {
     p: '¿Cómo se calculan los intereses de una compra a fin de mes?',
-    r: 'Con la tasa pactada (nominal o efectiva) por los días transcurridos entre la fecha de compra y la fecha de pago: Interés = Capital × [(1 + TEP) − 1], donde TEP es la tasa efectiva del período de días. Año comercial de 360 días.',
+    r: 'Con la tasa pactada (nominal o efectiva) por los días transcurridos entre la fecha de compra y la fecha de pago: Interés = Capital \u00d7 [(1 + TEP) − 1], donde TEP es la tasa efectiva del período de días. Año comercial de 360 días.',
   },
   {
     p: '¿Cómo funcionan las compras en cuotas?',

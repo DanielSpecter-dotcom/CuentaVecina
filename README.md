@@ -33,6 +33,15 @@ No se envían correos (el SMTP incluido en Supabase permite solo 2 por hora), as
 Desde ahí, todo se crea desde la app (sin correos): el admin del sistema da de alta tiendas y sus administradores
 (o aprueba solicitudes de "Registra tu negocio"), y cada tienda crea a sus clientes y les genera usuario (su DNI).
 
+## Despliegue en Vercel
+
+1. Vercel → **Add New → Project** → importar el repo de GitHub (detecta Vite; la configuración está en `vercel.json`).
+2. **Environment Variables**: `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` (los mismos valores de `.env.local`).
+   Si faltan, el build falla a propósito con un mensaje claro.
+3. Deploy. Luego restringir CORS de las Edge Functions al dominio final:
+   `supabase secrets set ORIGEN_PERMITIDO=https://<tu-app>.vercel.app`
+4. El plan gratuito de Supabase pausa el proyecto por inactividad: abrir la app un día antes de la revisión.
+
 ## 3. Cómo está organizado
 
 ```

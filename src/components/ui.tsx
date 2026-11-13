@@ -160,7 +160,7 @@ export function Modal({ titulo, abierto, onCerrar, children, ancho = 'max-w-2xl'
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-2xl text-stone-600 hover:bg-stone-100 hover:text-stone-900"
               aria-label="Cerrar"
             >
-              ×
+              &times;
             </button>
           </header>
           <div className="p-5">{children}</div>

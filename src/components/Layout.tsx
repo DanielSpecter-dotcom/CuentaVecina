@@ -51,7 +51,7 @@ export function Layout() {
         Saltar al contenido
       </a>
       <header className="no-imprimir sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2 md:flex-nowrap">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 md:gap-x-6 px-4 py-2 md:flex-nowrap">
           <Logo />
           {/* En móvil el menú pasa a una segunda fila que se desliza horizontalmente. */}
           <nav aria-label="Principal" className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 pb-1 md:order-none md:mx-0 md:w-auto md:flex-1 md:pb-0">

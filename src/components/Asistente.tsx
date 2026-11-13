@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { invocar, mensajeError } from '../lib/supabase'
 import { Boton } from './ui'
 
@@ -22,7 +22,7 @@ export function Asistente() {
     if (el) el.scrollTop = el.scrollHeight
   }, [mensajes, cargando, error])
 
-  async function enviar(e: FormEvent) {
+  async function enviar(e: SubmitEvent) {
     e.preventDefault()
     const pregunta = texto.trim()
     if (!pregunta || cargando) return
@@ -46,12 +46,12 @@ export function Asistente() {
       {abierto && (
         <section
           aria-label="Asistente de CuentaVecina"
-          className="flex h-[32rem] max-h-[calc(100dvh-6rem)] w-[22rem] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-stone-200 bg-white shadow-xl"
+          className="flex h-128 max-h-[calc(100dvh-6rem)] w-88 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-stone-200 bg-white shadow-xl"
         >
           <header className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
             <h2 className="text-lg font-semibold text-marca-800">Asistente</h2>
             <button onClick={() => setAbierto(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-2xl text-stone-600 hover:bg-stone-100" aria-label="Cerrar asistente">
-              ×
+              &times;
             </button>
           </header>
           <div ref={caja} className="flex-1 space-y-3 overflow-y-auto p-4 text-sm" aria-live="polite">
