@@ -84,6 +84,8 @@ export default function Inicio() {
   const parte = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', ...o }).format(fechaHoy)
   const semana = parte({ weekday: 'long' })
   const etiquetaHoy = `${semana[0].toUpperCase()}${semana.slice(1)}, ${parte({ month: 'long' })} ${hoy.slice(0, 4)}`
+  // En escritorio cada indicador va en su ficha.
+  const ficha = 'lg:rounded-2xl lg:border lg:border-papel-borde lg:bg-white lg:p-5'
 
   return (
     <div className="space-y-5">
@@ -95,57 +97,65 @@ export default function Inicio() {
         <h1 className="font-display text-2xl font-bold">Hoy toca cobrar</h1>
       </header>
 
-      <section aria-label="Cobros de hoy" className="flex flex-col gap-2">
-        {deHoy.length > 0 ? (
-          <>
-            {totalHoy.PEN > 0 && <MontoGrande>{dinero(totalHoy.PEN)}</MontoGrande>}
-            {totalHoy.USD > 0 && <MontoGrande>{dinero(totalHoy.USD, 'USD')}</MontoGrande>}
-            <p className="text-sm text-tinta-suave">
-              {deHoy.length === 1 ? deHoy[0].cliente.nombre : `${deHoy.length} clientes`} · {comprasHoy} {comprasHoy === 1 ? 'compra' : 'compras'}
+      {/* Celular: uno debajo del otro. Escritorio: tres fichas en fila (hoy, vencido, totales). */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-stretch">
+        <section aria-label="Cobros de hoy" className={`flex flex-col gap-2 ${ficha}`}>
+          {deHoy.length > 0 ? (
+            <>
+              {totalHoy.PEN > 0 && <MontoGrande>{dinero(totalHoy.PEN)}</MontoGrande>}
+              {totalHoy.USD > 0 && <MontoGrande>{dinero(totalHoy.USD, 'USD')}</MontoGrande>}
+              <p className="text-sm text-tinta-suave">
+                {deHoy.length === 1 ? deHoy[0].cliente.nombre : `${deHoy.length} clientes`} · {comprasHoy} {comprasHoy === 1 ? 'compra' : 'compras'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-2xl font-extrabold">Nada que cobrar hoy</p>
+              {proxima && <p className="text-sm text-tinta-suave">Próxima fecha de pago: {formatearFecha(proxima)}</p>}
+            </>
+          )}
+        </section>
+
+        {masAntigua ? (
+          <SelloVencido>
+            <p className="mt-1 font-display text-2xl font-extrabold text-vencido tabular-nums">
+              {vencido.PEN > 0 && dinero(vencido.PEN)}
+              {vencido.PEN > 0 && vencido.USD > 0 && ' · '}
+              {vencido.USD > 0 && dinero(vencido.USD, 'USD')}
             </p>
-          </>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm">
+                {clientesVencidos === 1 ? masAntigua.cliente.nombre : `${clientesVencidos} clientes`} · desde el {formatearFecha(masAntigua.fechaPago).slice(0, 5)}
+              </p>
+              <Link
+                to={`/tienda/cobranza?cliente=${masAntigua.cliente.id}&fecha=${masAntigua.fechaPago}`}
+                className="inline-flex min-h-11 items-center font-bold text-vencido underline underline-offset-4"
+              >
+                Cobrar ›
+              </Link>
+            </div>
+          </SelloVencido>
         ) : (
-          <>
-            <p className="font-display text-2xl font-extrabold">Nada que cobrar hoy</p>
-            {proxima && <p className="text-sm text-tinta-suave">Próxima fecha de pago: {formatearFecha(proxima)}</p>}
-          </>
-        )}
-      </section>
-
-      {masAntigua && (
-        <SelloVencido>
-          <p className="mt-1 font-display text-2xl font-extrabold text-vencido tabular-nums">
-            {vencido.PEN > 0 && dinero(vencido.PEN)}
-            {vencido.PEN > 0 && vencido.USD > 0 && ' · '}
-            {vencido.USD > 0 && dinero(vencido.USD, 'USD')}
-          </p>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm">
-              {clientesVencidos === 1 ? masAntigua.cliente.nombre : `${clientesVencidos} clientes`} · desde el {formatearFecha(masAntigua.fechaPago).slice(0, 5)}
-            </p>
-            <Link
-              to={`/tienda/cobranza?cliente=${masAntigua.cliente.id}&fecha=${masAntigua.fechaPago}`}
-              className="inline-flex min-h-11 items-center font-bold text-vencido underline underline-offset-4"
-            >
-              Cobrar ›
-            </Link>
+          <div className={`hidden lg:flex lg:flex-col lg:justify-center ${ficha}`}>
+            <p className="text-xs font-bold tracking-[0.12em] text-pagado">AL DÍA</p>
+            <p className="mt-1 font-display text-2xl font-extrabold">Sin pagos vencidos</p>
           </div>
-        </SelloVencido>
-      )}
+        )}
 
-      <dl className="flex flex-wrap gap-x-8 gap-y-2">
-        <div>
-          <dt className="text-xs text-tinta-suave">Por cobrar</dt>
-          <dd className="text-lg font-bold tabular-nums">
-            {dinero(total.PEN)}
-            {hayUsd && <span className="block">{dinero(total.USD, 'USD')}</span>}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-tinta-suave">Vecinos con cuenta</dt>
-          <dd className="text-lg font-bold tabular-nums">{numClientes}</dd>
-        </div>
-      </dl>
+        <dl className={`flex flex-wrap gap-x-8 gap-y-2 lg:content-center ${ficha}`}>
+          <div>
+            <dt className="text-xs text-tinta-suave">Por cobrar</dt>
+            <dd className="text-lg font-bold tabular-nums lg:font-display lg:text-2xl lg:font-extrabold">
+              {dinero(total.PEN)}
+              {hayUsd && <span className="block">{dinero(total.USD, 'USD')}</span>}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-tinta-suave">Vecinos con cuenta</dt>
+            <dd className="text-lg font-bold tabular-nums lg:font-display lg:text-2xl lg:font-extrabold">{numClientes}</dd>
+          </div>
+        </dl>
+      </div>
 
       <PrimerosPasos rol="admin_tienda" />
       {error && <Alerta>{error}</Alerta>}
@@ -197,47 +207,68 @@ export default function Inicio() {
           </Hoja>
 
           <Tarjeta titulo="Listado de pagos por fecha de pago" className="hidden sm:block">
-            <div className="space-y-5">
-              {porFecha.map(([fecha, lista]) => (
-                <div key={fecha}>
-                  <h3 className="mb-1 flex items-center gap-2 text-sm font-bold">
-                    Pago del {formatearFecha(fecha)}
-                    {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Cliente</th>
-                          <th className="text-right">Ítems</th>
-                          <th className="text-right">Capital</th>
-                          <th className="text-right">Interés</th>
-                          <th className="text-right">Total</th>
+            {/* Una sola tabla: cada fecha de pago es un grupo con su fila de título; el encabezado no se repite. */}
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th className="text-right">Ítems</th>
+                    <th className="text-right">Capital</th>
+                    <th className="text-right">Interés</th>
+                    <th className="text-right">Total</th>
+                  </tr>
+                </thead>
+                {porFecha.map(([fecha, lista]) => (
+                  <tbody key={fecha}>
+                    <tr>
+                      <th colSpan={5} scope="rowgroup" className="bg-papel pt-4 text-sm tracking-normal text-tinta normal-case">
+                        <span className="flex items-center gap-2">
+                          Pago del {formatearFecha(fecha)}
+                          {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
+                        </span>
+                      </th>
+                    </tr>
+                    {lista.map((f) => {
+                      const m = f.cliente.moneda ? 'USD' : 'PEN'
+                      return (
+                        <tr key={f.cliente.id}>
+                          <td>
+                            <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="font-bold underline-offset-4 hover:underline">
+                              {f.cliente.nombre}
+                            </Link>
+                            <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
+                          </td>
+                          <td className="text-right">{f.items}</td>
+                          <td className="text-right">{dinero(f.capital, m)}</td>
+                          <td className="text-right">{dinero(f.interes, m)}</td>
+                          <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes, m)}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {lista.map((f) => {
-                          const m = f.cliente.moneda ? 'USD' : 'PEN'
-                          return (
-                            <tr key={f.cliente.id}>
-                              <td>
-                                <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="font-bold underline-offset-4 hover:underline">
-                                  {f.cliente.nombre}
-                                </Link>
-                                <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
-                              </td>
-                              <td className="text-right">{f.items}</td>
-                              <td className="text-right">{dinero(f.capital, m)}</td>
-                              <td className="text-right">{dinero(f.interes, m)}</td>
-                              <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes, m)}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ))}
+                      )
+                    })}
+                  </tbody>
+                ))}
+                <tfoot>
+                  <tr className="font-bold">
+                    <td colSpan={4} className="text-right">
+                      {hayUsd ? 'Total S/' : 'Total'}
+                    </td>
+                    <td className="text-right text-base">
+                      <span className="border-b-[3px] border-double border-tinta">{dinero(total.PEN)}</span>
+                    </td>
+                  </tr>
+                  {hayUsd && (
+                    <tr className="font-bold">
+                      <td colSpan={4} className="text-right">
+                        Total US$
+                      </td>
+                      <td className="text-right text-base">
+                        <span className="border-b-[3px] border-double border-tinta">{dinero(total.USD, 'USD')}</span>
+                      </td>
+                    </tr>
+                  )}
+                </tfoot>
+              </table>
             </div>
           </Tarjeta>
         </>

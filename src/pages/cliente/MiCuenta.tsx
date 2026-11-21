@@ -83,196 +83,202 @@ export default function MiCuenta() {
         <p className="text-sm text-tinta-suave">Tu cuenta en {tienda?.nombre_comercial}</p>
       </header>
 
-      <section aria-label="Próximo pago" className="flex flex-col gap-2">
-        {ec ? (
-          <>
-            <p className="text-sm text-tinta-suave">Tu próximo pago es</p>
-            <MontoGrande>{dinero(ec.total, m)}</MontoGrande>
-            <p>
-              hasta el{' '}
-              <strong>
-                {diaSemana(ec.fechaPago)} {formatearFecha(ec.fechaPago)}
-              </strong>
-            </p>
-            {ec.diasMora > 0 ? (
-              <Sticker className="bg-vencido text-white">vencido hace {ec.diasMora} días</Sticker>
-            ) : faltan <= 0 ? (
-              <Sticker>vence hoy</Sticker>
-            ) : (
-              <Sticker>{faltan === 1 ? 'falta 1 día' : `faltan ${faltan} días`}</Sticker>
+      {/* Escritorio: el próximo pago y las condiciones lado a lado. */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10">
+        <section aria-label="Próximo pago" className="flex flex-col gap-2">
+          {ec ? (
+            <>
+              <p className="text-sm text-tinta-suave">Tu próximo pago es</p>
+              <MontoGrande>{dinero(ec.total, m)}</MontoGrande>
+              <p>
+                hasta el{' '}
+                <strong>
+                  {diaSemana(ec.fechaPago)} {formatearFecha(ec.fechaPago)}
+                </strong>
+              </p>
+              {ec.diasMora > 0 ? (
+                <Sticker className="bg-vencido text-white">vencido hace {ec.diasMora} días</Sticker>
+              ) : faltan <= 0 ? (
+                <Sticker>vence hoy</Sticker>
+              ) : (
+                <Sticker>{faltan === 1 ? 'falta 1 día' : `faltan ${faltan} días`}</Sticker>
+              )}
+            </>
+          ) : (
+            <p className="font-display text-2xl font-extrabold">No tienes pagos pendientes</p>
+          )}
+        </section>
+
+        <Condiciones cliente={cliente} deuda={deuda} />
+      </div>
+
+      <div className={ec ? 'flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8' : 'space-y-6'}>
+        {ec && (
+          <section className="min-w-0 space-y-3">
+            <HojaEstadoCuenta ec={ec} className="sm:hidden" titulo="Lo que entra en este pago" subtitulo={`Corte ${formatearFecha(ec.fechaCorte)}`} />
+            <div className="sm:hidden">
+              <Prelacion ec={ec} />
+            </div>
+            <div className="hidden rounded-2xl border border-papel-borde bg-white p-5 sm:block">
+              <h2 className="mb-4 font-display text-lg font-bold">Lo que entra en este pago</h2>
+              <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
+            </div>
+            {periodos.length > 1 && (
+              <p className="text-xs text-tinta-suave">
+                Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
+              </p>
             )}
-          </>
-        ) : (
-          <p className="font-display text-2xl font-extrabold">No tienes pagos pendientes</p>
+          </section>
         )}
-      </section>
-
-      <Condiciones cliente={cliente} deuda={deuda} />
-
-      {ec && (
-        <section className="space-y-3">
-          <HojaEstadoCuenta ec={ec} className="sm:hidden" titulo="Lo que entra en este pago" subtitulo={`Corte ${formatearFecha(ec.fechaCorte)}`} />
-          <div className="sm:hidden">
-            <Prelacion ec={ec} />
-          </div>
-          <div className="hidden rounded-2xl border border-papel-borde bg-white p-5 sm:block">
-            <h2 className="mb-4 font-display text-lg font-bold">Lo que entra en este pago</h2>
-            <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
-          </div>
-          {periodos.length > 1 && (
-            <p className="text-xs text-tinta-suave">
-              Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
-            </p>
+        <div className="min-w-0 space-y-6">
+          {ventasCuotas.length > 0 && (
+            <section aria-labelledby="titulo-cuotas" className="space-y-3">
+              <h2 id="titulo-cuotas" className="text-xl font-bold">
+                Compras en cuotas
+              </h2>
+              <ul className="space-y-3">
+                {ventasCuotas.map((v) => {
+                  const deLaVenta = cuotas.filter((q) => q.venta_id === v.id)
+                  const actual = deLaVenta.find((q) => q.estado_pago === 'pendiente')?.numero_cuota
+                  const abierto = cronogramaAbierto === v.id
+                  return (
+                    <li key={v.id} className="rounded-2xl border border-papel-borde bg-white p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold">{v.productos?.nombre}</span>
+                        <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
+                      </div>
+                      <ol aria-label="Cuotas" className="my-3 flex items-center overflow-x-auto py-1">
+                        {deLaVenta.map((q, i) => {
+                          const pagada = q.estado_pago === 'pagado'
+                          const esActual = q.numero_cuota === actual
+                          return (
+                            <li key={q.id} className="flex shrink-0 items-center">
+                              {i > 0 && <span aria-hidden="true" className={`h-0.5 w-4 ${pagada || esActual ? 'bg-tinta' : 'bg-linea'}`} />}
+                              <span
+                                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                                  pagada ? 'bg-tinta text-resaltador' : esActual ? 'border-2 border-tinta bg-resaltador text-tinta' : 'border-[1.5px] border-linea bg-white text-tinta-suave'
+                                }`}
+                              >
+                                <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
+                                <span className="sr-only">
+                                  Cuota {q.numero_cuota}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
+                                </span>
+                              </span>
+                            </li>
+                          )
+                        })}
+                      </ol>
+                      <p className="text-sm text-tinta-suave">
+                        Cuotas de <span className="font-bold text-tinta">{dinero(v.valor_cuota, m)}</span> · comprada el {formatearFecha(v.fecha_compra)}
+                      </p>
+                      <button
+                        type="button"
+                        aria-expanded={abierto}
+                        onClick={() => setCronogramaAbierto(abierto ? null : v.id)}
+                        className="mt-1 min-h-11 text-sm font-bold underline underline-offset-4"
+                      >
+                        {abierto ? 'Ocultar cronograma' : 'Ver cronograma ›'}
+                      </button>
+                      {abierto && (
+                        <div className="mt-2">
+                          <Cronograma
+                            moneda={m}
+                            filas={deLaVenta.map((q) => ({
+                              numero: q.numero_cuota,
+                              fechaVencimiento: q.fecha_vencimiento,
+                              saldoInicial: q.saldo_inicial,
+                              interes: q.interes,
+                              amortizacion: q.amortizacion,
+                              cuota: q.cuota,
+                              saldoFinal: q.saldo_final,
+                              estado: q.estado_pago,
+                            }))}
+                          />
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           )}
-        </section>
-      )}
 
-      {ventasCuotas.length > 0 && (
-        <section aria-labelledby="titulo-cuotas" className="space-y-3">
-          <h2 id="titulo-cuotas" className="text-xl font-bold">
-            Compras en cuotas
-          </h2>
-          <ul className="space-y-3">
-            {ventasCuotas.map((v) => {
-              const deLaVenta = cuotas.filter((q) => q.venta_id === v.id)
-              const actual = deLaVenta.find((q) => q.estado_pago === 'pendiente')?.numero_cuota
-              const abierto = cronogramaAbierto === v.id
-              return (
-                <li key={v.id} className="rounded-2xl border border-papel-borde bg-white p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold">{v.productos?.nombre}</span>
-                    <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
-                  </div>
-                  <ol aria-label="Cuotas" className="my-3 flex items-center overflow-x-auto py-1">
-                    {deLaVenta.map((q, i) => {
-                      const pagada = q.estado_pago === 'pagado'
-                      const esActual = q.numero_cuota === actual
-                      return (
-                        <li key={q.id} className="flex shrink-0 items-center">
-                          {i > 0 && <span aria-hidden="true" className={`h-0.5 w-4 ${pagada || esActual ? 'bg-tinta' : 'bg-linea'}`} />}
-                          <span
-                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                              pagada ? 'bg-tinta text-resaltador' : esActual ? 'border-2 border-tinta bg-resaltador text-tinta' : 'border-[1.5px] border-linea bg-white text-tinta-suave'
-                            }`}
-                          >
-                            <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
-                            <span className="sr-only">
-                              Cuota {q.numero_cuota}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
-                            </span>
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                  <p className="text-sm text-tinta-suave">
-                    Cuotas de <span className="font-bold text-tinta">{dinero(v.valor_cuota, m)}</span> · comprada el {formatearFecha(v.fecha_compra)}
-                  </p>
-                  <button
-                    type="button"
-                    aria-expanded={abierto}
-                    onClick={() => setCronogramaAbierto(abierto ? null : v.id)}
-                    className="mt-1 min-h-11 text-sm font-bold underline underline-offset-4"
-                  >
-                    {abierto ? 'Ocultar cronograma' : 'Ver cronograma ›'}
-                  </button>
-                  {abierto && (
-                    <div className="mt-2">
-                      <Cronograma
-                        moneda={m}
-                        filas={deLaVenta.map((q) => ({
-                          numero: q.numero_cuota,
-                          fechaVencimiento: q.fecha_vencimiento,
-                          saldoInicial: q.saldo_inicial,
-                          interes: q.interes,
-                          amortizacion: q.amortizacion,
-                          cuota: q.cuota,
-                          saldoFinal: q.saldo_final,
-                          estado: q.estado_pago,
-                        }))}
+          <section>
+            <div role="tablist" aria-label="Historial" className="grid grid-cols-2 gap-1 rounded-xl border-[1.5px] border-tinta p-1">
+              {(
+                [
+                  ['compras', 'Mis compras'],
+                  ['pagos', 'Mis pagos'],
+                ] as const
+              ).map(([id, texto]) => (
+                <button
+                  key={id}
+                  id={`pestana-${id}`}
+                  role="tab"
+                  type="button"
+                  aria-selected={pestana === id}
+                  aria-controls={`panel-${id}`}
+                  tabIndex={pestana === id ? 0 : -1}
+                  onClick={() => setPestana(id)}
+                  onKeyDown={teclasPestana}
+                  className={`min-h-11 rounded-lg font-bold ${pestana === id ? 'bg-tinta text-papel' : 'text-tinta'}`}
+                >
+                  {texto}
+                </button>
+              ))}
+            </div>
+
+            <div id="panel-compras" role="tabpanel" aria-labelledby="pestana-compras" hidden={pestana !== 'compras'} className="mt-3">
+              {ventas.length === 0 ? (
+                <Vacio>Aún no tienes compras registradas.</Vacio>
+              ) : (
+                <Hoja>
+                  <ul>
+                    {ventas.map((v, i) => (
+                      <Renglon
+                        key={v.id}
+                        margen={<MargenFecha fecha={v.fecha_compra} repetida={i > 0 && ventas[i - 1].fecha_compra === v.fecha_compra} />}
+                        titulo={
+                          <>
+                            {v.productos?.nombre} &times; {v.cantidad}
+                          </>
+                        }
+                        detalle={
+                          <>
+                            {v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`} ·{' '}
+                            <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
+                          </>
+                        }
+                        monto={dinero(v.monto_capital, m)}
                       />
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
+                    ))}
+                  </ul>
+                </Hoja>
+              )}
+            </div>
 
-      <section>
-        <div role="tablist" aria-label="Historial" className="grid grid-cols-2 gap-1 rounded-xl border-[1.5px] border-tinta p-1">
-          {(
-            [
-              ['compras', 'Mis compras'],
-              ['pagos', 'Mis pagos'],
-            ] as const
-          ).map(([id, texto]) => (
-            <button
-              key={id}
-              id={`pestana-${id}`}
-              role="tab"
-              type="button"
-              aria-selected={pestana === id}
-              aria-controls={`panel-${id}`}
-              tabIndex={pestana === id ? 0 : -1}
-              onClick={() => setPestana(id)}
-              onKeyDown={teclasPestana}
-              className={`min-h-11 rounded-lg font-bold ${pestana === id ? 'bg-tinta text-papel' : 'text-tinta'}`}
-            >
-              {texto}
-            </button>
-          ))}
+            <div id="panel-pagos" role="tabpanel" aria-labelledby="pestana-pagos" hidden={pestana !== 'pagos'} className="mt-3">
+              {pagos.length === 0 ? (
+                <Vacio>Aún no tienes pagos.</Vacio>
+              ) : (
+                <Hoja>
+                  <ul>
+                    {pagos.map((p) => (
+                      <Renglon
+                        key={p.id}
+                        margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
+                        titulo={`Pago del ${formatearFecha(p.fecha_efectiva_pago)}`}
+                        detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
+                        monto={dinero(p.monto_pagado, m)}
+                      />
+                    ))}
+                  </ul>
+                </Hoja>
+              )}
+            </div>
+          </section>
         </div>
-
-        <div id="panel-compras" role="tabpanel" aria-labelledby="pestana-compras" hidden={pestana !== 'compras'} className="mt-3">
-          {ventas.length === 0 ? (
-            <Vacio>Aún no tienes compras registradas.</Vacio>
-          ) : (
-            <Hoja>
-              <ul>
-                {ventas.map((v, i) => (
-                  <Renglon
-                    key={v.id}
-                    margen={<MargenFecha fecha={v.fecha_compra} repetida={i > 0 && ventas[i - 1].fecha_compra === v.fecha_compra} />}
-                    titulo={
-                      <>
-                        {v.productos?.nombre} &times; {v.cantidad}
-                      </>
-                    }
-                    detalle={
-                      <>
-                        {v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`} ·{' '}
-                        <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
-                      </>
-                    }
-                    monto={dinero(v.monto_capital, m)}
-                  />
-                ))}
-              </ul>
-            </Hoja>
-          )}
-        </div>
-
-        <div id="panel-pagos" role="tabpanel" aria-labelledby="pestana-pagos" hidden={pestana !== 'pagos'} className="mt-3">
-          {pagos.length === 0 ? (
-            <Vacio>Aún no tienes pagos.</Vacio>
-          ) : (
-            <Hoja>
-              <ul>
-                {pagos.map((p) => (
-                  <Renglon
-                    key={p.id}
-                    margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
-                    titulo={`Pago del ${formatearFecha(p.fecha_efectiva_pago)}`}
-                    detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
-                    monto={dinero(p.monto_pagado, m)}
-                  />
-                ))}
-              </ul>
-            </Hoja>
-          )}
-        </div>
-      </section>
+      </div>
     </div>
   )
 }
