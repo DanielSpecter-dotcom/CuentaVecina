@@ -38,7 +38,7 @@ export default function NuevaVenta() {
   const [enCuotasElegido, setEnCuotas] = useState(false)
   const [numCuotas, setNumCuotas] = useState('3')
   const [fechaHora, setFechaHora] = useState(ahoraLocal())
-  const [deuda, setDeuda] = useState<number | null>(null)
+  const [deudaDe, setDeudaDe] = useState<{ clave: string; valor: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [registrada, setRegistrada] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -56,11 +56,13 @@ export default function NuevaVenta() {
   const producto = productos.find((p) => p.id === productoId)
   const m = aMoneda(cliente?.moneda ?? false)
 
+  // La deuda se guarda con la consulta a la que pertenece (cliente + última venta): sin vaciarla en el efecto.
+  const claveDeuda = `${clienteId}|${registrada ?? ''}`
+  const deuda = deudaDe?.clave === claveDeuda ? deudaDe.valor : null
   useEffect(() => {
-    setDeuda(null)
     if (!clienteId) return
-    supabase.rpc('fn_deuda_vigente', { p_cliente_id: clienteId }).then(({ data }) => setDeuda(Number(data ?? 0)))
-  }, [clienteId, registrada])
+    supabase.rpc('fn_deuda_vigente', { p_cliente_id: clienteId }).then(({ data }) => setDeudaDe({ clave: claveDeuda, valor: Number(data ?? 0) }))
+  }, [clienteId, claveDeuda])
 
   // La modalidad se ajusta a lo que permite el producto (0 fin de mes, 1 cuotas, 2 ambas).
   const enCuotas = producto?.modalidad_venta === 0 ? false : producto?.modalidad_venta === 1 ? true : enCuotasElegido
@@ -139,8 +141,8 @@ export default function NuevaVenta() {
       {error && <Alerta>{error}</Alerta>}
 
       <form onSubmit={registrar}>
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="min-w-0 space-y-6 lg:col-span-2">
             <section className="space-y-3">
               <Paso n={1}>Quién</Paso>
               <SelectorCliente
@@ -225,7 +227,7 @@ export default function NuevaVenta() {
           </div>
 
           {/* Simulación como ticket de caja. */}
-          <section aria-labelledby="titulo-simulacion" className="self-start rounded-sm border-y-[3px] border-dotted border-linea bg-white p-4 shadow lg:col-span-3">
+          <section aria-labelledby="titulo-simulacion" className="min-w-0 self-start rounded-sm border-y-[3px] border-dotted border-linea bg-white p-4 shadow lg:col-span-3">
             <h2 id="titulo-simulacion" className="font-sans text-xs font-bold tracking-[0.12em] text-tinta-suave uppercase">
               Simulación{cliente && ` · ${cliente.nombre}`}
             </h2>

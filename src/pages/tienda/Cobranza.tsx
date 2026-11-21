@@ -15,11 +15,13 @@ export default function Cobranza() {
   const [params, setParams] = useSearchParams()
   const clienteId = params.get('cliente') ?? ''
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [periodos, setPeriodos] = useState<PeriodoPendiente[]>([])
-  const [pagos, setPagos] = useState<Pago[]>([])
+  // Los datos guardan de qué cliente/consulta son: así no hace falta vaciarlos dentro del efecto
+  // y una respuesta tardía de otro cliente nunca se muestra.
+  const [datos, setDatos] = useState<{ id: string; periodos: PeriodoPendiente[]; pagos: Pago[] } | null>(null)
+  const [version, setVersion] = useState(0)
   const [fechaPago, setFechaPago] = useState<string>(params.get('fecha') ?? '')
   const [fechaEfectiva, setFechaEfectiva] = useState(hoyLima())
-  const [ec, setEc] = useState<EstadoCuenta | null>(null)
+  const [ecDe, setEcDe] = useState<{ clave: string; ec: EstadoCuenta } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -31,10 +33,12 @@ export default function Cobranza() {
   const cliente = clientes.find((c) => c.id === clienteId)
   const m = aMoneda(cliente?.moneda ?? false)
 
+  const periodos = datos?.id === clienteId ? datos.periodos : []
+  const pagos = datos?.id === clienteId ? datos.pagos : []
+  const claveEc = `${clienteId}|${fechaPago}|${fechaEfectiva}|${version}`
+  const ec = ecDe?.clave === claveEc ? ecDe.ec : null
+
   const cargarCliente = useCallback(async () => {
-    setPeriodos([])
-    setPagos([])
-    setEc(null)
     if (!clienteId) return
     const [p, h] = await Promise.all([
       supabase.rpc('periodos_pendientes', { p_cliente_id: clienteId }),
@@ -42,8 +46,7 @@ export default function Cobranza() {
     ])
     if (p.error) setError(mensajeError(p.error))
     const lista = (p.data as PeriodoPendiente[]) ?? []
-    setPeriodos(lista)
-    setPagos((h.data as Pago[]) ?? [])
+    setDatos({ id: clienteId, periodos: lista, pagos: (h.data as Pago[]) ?? [] })
     setFechaPago((actual) => (lista.some((x) => x.fecha_pago === actual) ? actual : (lista[0]?.fecha_pago ?? '')))
   }, [clienteId])
 
@@ -52,15 +55,14 @@ export default function Cobranza() {
   }, [cargarCliente])
 
   useEffect(() => {
-    setEc(null)
     if (!clienteId || !fechaPago) return
     supabase
       .rpc('estado_cuenta', { p_cliente_id: clienteId, p_fecha_pago: fechaPago, p_fecha_efectiva: fechaEfectiva || undefined })
       .then(({ data, error }) => {
         if (error) setError(mensajeError(error))
-        else setEc(data as unknown as EstadoCuenta)
+        else setEcDe({ clave: claveEc, ec: data as unknown as EstadoCuenta })
       })
-  }, [clienteId, fechaPago, fechaEfectiva])
+  }, [clienteId, fechaPago, fechaEfectiva, claveEc])
 
   async function registrarPago() {
     if (!ec) return
@@ -76,6 +78,7 @@ export default function Cobranza() {
     setGuardando(false)
     if (error) return setError(mensajeError(error))
     setAviso(`Pago de ${dinero(ec.total, m)} registrado.`)
+    setVersion((v) => v + 1)
     cargarCliente()
   }
 

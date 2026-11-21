@@ -58,7 +58,7 @@ function aForm(c: Cliente): Form {
   }
 }
 
-const accion = 'inline-flex min-h-11 items-center underline-offset-4 hover:underline'
+const accion = 'inline-flex min-h-11 min-w-11 items-center underline-offset-4 hover:underline'
 
 export default function Clientes() {
   const { tienda } = useAuth()
@@ -162,13 +162,13 @@ export default function Clientes() {
   const visibles = lista.filter((c) => `${c.nombre} ${c.documento}`.toLowerCase().includes(filtro.toLowerCase()))
 
   /** Usuario del cliente y sus acciones (igual en la ficha y en la tabla). */
-  const usuarioDe = (c: Cliente, perfil?: Perfil) =>
+  const usuarioDe = (c: Cliente, perfil?: Perfil, tabla = false) =>
     perfil ? (
-      <div className="flex flex-wrap items-center gap-x-3">
-        <span>
+      <div className={tabla ? 'whitespace-nowrap [&>button]:mr-3' : 'flex flex-wrap items-center gap-x-3'}>
+        <span className={tabla ? 'block' : ''}>
           {perfil.usuario} {!perfil.activo && <Etiqueta color="rojo">inactivo</Etiqueta>}
         </span>
-        <button className={`${accion} font-bold`} aria-label={`Restablecer contraseña de ${c.nombre}`} onClick={() => setCuenta({ cliente: c, perfil, password: '' })}>
+        <button className={`${accion} font-bold`} aria-label={`Restablecer clave de ${c.nombre}`} onClick={() => setCuenta({ cliente: c, perfil, password: '' })}>
           Restablecer clave
         </button>
         <button className={`${accion} text-tinta-suave`} aria-label={`${perfil.activo ? 'Desactivar' : 'Activar'} usuario de ${c.nombre}`} onClick={() => activarUsuario(perfil)}>
@@ -216,8 +216,12 @@ export default function Clientes() {
                   <div className="flex items-center gap-3">
                     <Avatar nombre={c.nombre} activo={c.estado} />
                     <div className="min-w-0 flex-1">
-                      <Link to={`/tienda/cobranza?cliente=${c.id}`} className="block truncate font-bold underline-offset-4 hover:underline">
-                        {c.nombre}
+                      <Link
+                        to={`/tienda/cobranza?cliente=${c.id}`}
+                        // El área de toque se amplía a 44 px sin mover el texto.
+                        className="relative block font-bold underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] hover:underline"
+                      >
+                        <span className="block truncate">{c.nombre}</span>
                       </Link>
                       <p className="truncate text-xs text-tinta-suave">
                         DNI {c.documento} {c.telefono && `· ${c.telefono}`}
@@ -259,10 +263,8 @@ export default function Clientes() {
                 <thead>
                   <tr>
                     <th>Cliente</th>
-                    <th>Tasa pactada</th>
-                    <th>Moratoria</th>
-                    <th className="text-right">Límite</th>
-                    <th>Corte / pago</th>
+                    <th>Tasas</th>
+                    <th>Crédito</th>
                     <th>Usuario</th>
                     <th>Estado</th>
                     <th>
@@ -276,30 +278,34 @@ export default function Clientes() {
                     const m = c.moneda ? 'USD' : 'PEN'
                     return (
                       <tr key={c.id} className={c.estado ? '' : 'bg-papel-borde/40'}>
-                        <td>
+                        <td className="min-w-44">
                           <Link to={`/tienda/cobranza?cliente=${c.id}`} className="font-bold underline-offset-4 hover:underline">
                             {c.nombre}
                           </Link>
-                          <div className="text-xs text-tinta-suave">
+                          <div className="text-xs whitespace-nowrap text-tinta-suave">
                             DNI {c.documento} {c.telefono && `· ${c.telefono}`}
                           </div>
                         </td>
-                        <td className="text-xs">{describirTasa(c.tipo_tasa, c.tasa_compensatoria, c.periodo_tasa, c.capitalizacion)}</td>
-                        <td className="text-xs">{describirTasa(c.tipo_tasa_moratoria, c.tasa_moratoria, c.periodo_tasa_moratoria, c.capitalizacion_moratoria)}</td>
-                        <td className="text-right">
-                          {dinero(c.limite_credito, m)}
+                        <td className="whitespace-nowrap">
+                          <div className="font-bold">{describirTasa(c.tipo_tasa, c.tasa_compensatoria, c.periodo_tasa, c.capitalizacion)}</div>
+                          <div className="text-xs text-tinta-suave">
+                            Mora {describirTasa(c.tipo_tasa_moratoria, c.tasa_moratoria, c.periodo_tasa_moratoria, c.capitalizacion_moratoria)}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="font-bold">{dinero(c.limite_credito, m)}</div>
                           <div className="text-xs text-tinta-suave">hasta {c.plazo_max_meses} cuotas</div>
+                          <div className="text-xs text-tinta-suave">
+                            corte día {c.dia_corte} · pago día {c.dia_pago}
+                          </div>
                         </td>
-                        <td className="text-xs">
-                          Corte {c.dia_corte} · Pago {c.dia_pago}
-                        </td>
-                        <td className="text-xs">{usuarioDe(c, perfil)}</td>
+                        <td className="text-xs">{usuarioDe(c, perfil, true)}</td>
                         <td>{estadoDe(c)}</td>
                         <td className="space-x-1 text-right whitespace-nowrap">
-                          <Boton variante="fantasma" aria-label={`Editar a ${c.nombre}`} onClick={() => setForm(aForm(c))}>
+                          <Boton variante="fantasma" className="px-3" aria-label={`Editar a ${c.nombre}`} onClick={() => setForm(aForm(c))}>
                             Editar
                           </Boton>
-                          <Boton variante="secundario" aria-label={`${c.estado ? 'Dar de baja' : 'Activar'} a ${c.nombre}`} onClick={() => cambiarEstado(c)}>
+                          <Boton variante="secundario" className="px-4" aria-label={`${c.estado ? 'Dar de baja' : 'Activar'} a ${c.nombre}`} onClick={() => cambiarEstado(c)}>
                             {c.estado ? 'Dar de baja' : 'Activar'}
                           </Boton>
                         </td>

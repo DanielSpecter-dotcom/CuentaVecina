@@ -93,7 +93,19 @@ export default function Productos() {
     setForm({ ...p, descripcion: p.descripcion ?? '', marca: p.marca ?? '', proveedor: p.proveedor ?? '', precio_contado: String(p.precio_contado), precio_lista: String(p.precio_lista) })
   const estadoDe = (p: Producto) => (p.estado ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>)
   const imagen = (p: Producto, clase: string) =>
-    p.imagen_url ? <img src={p.imagen_url} alt="" className={`${clase} shrink-0 rounded-lg object-cover`} /> : <div className={`${clase} shrink-0 rounded-lg bg-papel-borde`} />
+    p.imagen_url ? (
+      <img src={p.imagen_url} alt="" className={`${clase} shrink-0 rounded-lg object-cover`} />
+    ) : (
+      // Sin foto: iniciales del producto (un cuadro vacío parece una imagen que no cargó).
+      <div aria-hidden="true" className={`${clase} flex shrink-0 items-center justify-center rounded-lg bg-papel-borde font-display text-sm font-extrabold text-tinta-suave`}>
+        {p.nombre
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((x) => x[0])
+          .join('')
+          .toUpperCase()}
+      </div>
+    )
 
   return (
     <div className="space-y-4">
