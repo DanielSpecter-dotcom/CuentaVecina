@@ -2,7 +2,7 @@ import { useEffect, useState, type KeyboardEvent } from 'react'
 import { Condiciones, Hoja, MargenFecha, MontoGrande, Renglon, Sticker } from '../../components/cuaderno'
 import { Cronograma } from '../../components/Cronograma'
 import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components/EstadoCuentaVista'
-import { Alerta, Etiqueta, Vacio } from '../../components/ui'
+import { Alerta, Dato, Etiqueta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { moneda as aMoneda } from '../../lib/codigos'
 import { diffDias, formatearFecha, hoyLima } from '../../lib/fechas'
@@ -84,7 +84,7 @@ export default function MiCuenta() {
       </header>
 
       {/* Escritorio: el próximo pago y las condiciones lado a lado. */}
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10">
+      <div className="flex flex-col gap-6 escritorio:grid escritorio:grid-cols-2 escritorio:items-center escritorio:gap-10">
         <section aria-label="Próximo pago" className="flex flex-col gap-2">
           {ec ? (
             <>
@@ -112,7 +112,8 @@ export default function MiCuenta() {
         <Condiciones cliente={cliente} deuda={deuda} />
       </div>
 
-      <div className={ec ? 'flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8' : 'space-y-6'}>
+      {/* Escritorio: el detalle del pago a todo el ancho; debajo, cuotas e historial lado a lado. */}
+      <div className="space-y-6">
         {ec && (
           <section className="min-w-0 space-y-3">
             <HojaEstadoCuenta ec={ec} className="sm:hidden" titulo="Lo que entra en este pago" subtitulo={`Corte ${formatearFecha(ec.fechaCorte)}`} />
@@ -130,47 +131,81 @@ export default function MiCuenta() {
             )}
           </section>
         )}
-        <div className="min-w-0 space-y-6">
+        <div
+          className={
+            ventasCuotas.length > 0 ? 'flex flex-col gap-6 escritorio:grid escritorio:grid-cols-2 escritorio:items-start escritorio:gap-8' : 'space-y-6'
+          }
+        >
           {ventasCuotas.length > 0 && (
-            <section aria-labelledby="titulo-cuotas" className="space-y-3">
+            <section aria-labelledby="titulo-cuotas" className="min-w-0 space-y-3">
               <h2 id="titulo-cuotas" className="text-xl font-bold">
                 Compras en cuotas
               </h2>
               <ul className="space-y-3">
                 {ventasCuotas.map((v) => {
                   const deLaVenta = cuotas.filter((q) => q.venta_id === v.id)
-                  const actual = deLaVenta.find((q) => q.estado_pago === 'pendiente')?.numero_cuota
+                  const pendientes = deLaVenta.filter((q) => q.estado_pago === 'pendiente')
+                  const proxima = pendientes[0]
+                  const actual = proxima?.numero_cuota
+                  const saldo = pendientes.reduce((t, q) => t + Number(q.cuota), 0)
                   const abierto = cronogramaAbierto === v.id
                   return (
-                    <li key={v.id} className="rounded-2xl border border-papel-borde bg-white p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold">{v.productos?.nombre}</span>
-                        <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
+                    <li key={v.id} className="rounded-2xl border border-papel-borde bg-white p-4 escritorio:p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-display text-lg font-bold">{v.productos?.nombre}</h3>
+                            <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
+                          </div>
+                          <p className="text-sm text-tinta-suave">
+                            {deLaVenta.length} cuotas · comprada el {formatearFecha(v.fecha_compra)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-tinta-suave">Cuota mensual</p>
+                          <p className="font-display text-2xl font-extrabold tabular-nums">{dinero(v.valor_cuota, m)}</p>
+                        </div>
                       </div>
-                      <ol aria-label="Cuotas" className="my-3 flex items-center overflow-x-auto py-1">
+
+                      {/* Línea de cuotas: en escritorio ocupa todo el ancho y muestra el vencimiento de cada una. */}
+                      <ol aria-label="Cuotas" className="my-4 flex items-start overflow-x-auto py-1">
                         {deLaVenta.map((q, i) => {
                           const pagada = q.estado_pago === 'pagado'
                           const esActual = q.numero_cuota === actual
                           return (
-                            <li key={q.id} className="flex shrink-0 items-center">
-                              {i > 0 && <span aria-hidden="true" className={`h-0.5 w-4 ${pagada || esActual ? 'bg-tinta' : 'bg-linea'}`} />}
-                              <span
-                                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                                  pagada ? 'bg-tinta text-resaltador' : esActual ? 'border-2 border-tinta bg-resaltador text-tinta' : 'border-[1.5px] border-linea bg-white text-tinta-suave'
-                                }`}
-                              >
-                                <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
-                                <span className="sr-only">
-                                  Cuota {q.numero_cuota}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
+                            <li key={q.id} className={`flex shrink-0 items-start ${i > 0 ? 'escritorio:flex-1' : ''}`}>
+                              {i > 0 && (
+                                <span aria-hidden="true" className={`mt-4 h-0.5 w-4 escritorio:min-w-4 escritorio:flex-1 ${pagada || esActual ? 'bg-tinta' : 'bg-linea'}`} />
+                              )}
+                              <span className="flex flex-col items-center gap-1">
+                                <span
+                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold escritorio:h-9 escritorio:w-9 escritorio:text-sm ${
+                                    pagada
+                                      ? 'bg-tinta text-resaltador'
+                                      : esActual
+                                        ? 'border-2 border-tinta bg-resaltador text-tinta'
+                                        : 'border-[1.5px] border-linea bg-white text-tinta-suave'
+                                  }`}
+                                >
+                                  <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
+                                  <span className="sr-only">
+                                    Cuota {q.numero_cuota}, vence el {formatearFecha(q.fecha_vencimiento)}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
+                                  </span>
+                                </span>
+                                <span aria-hidden="true" className={`hidden text-[11px] tabular-nums escritorio:block ${esActual ? 'font-bold' : 'text-tinta-suave'}`}>
+                                  {formatearFecha(q.fecha_vencimiento).slice(0, 5)}
                                 </span>
                               </span>
                             </li>
                           )
                         })}
                       </ol>
-                      <p className="text-sm text-tinta-suave">
-                        Cuotas de <span className="font-bold text-tinta">{dinero(v.valor_cuota, m)}</span> · comprada el {formatearFecha(v.fecha_compra)}
-                      </p>
+
+                      <dl className="grid grid-cols-3 gap-3 border-t border-dashed border-papel-borde pt-3 text-sm">
+                        <Dato etiqueta="Pagadas" valor={`${deLaVenta.length - pendientes.length} de ${deLaVenta.length}`} />
+                        <Dato etiqueta="Próxima cuota" valor={proxima ? formatearFecha(proxima.fecha_vencimiento) : '—'} />
+                        <Dato etiqueta="Saldo por pagar" valor={dinero(saldo, m)} />
+                      </dl>
                       <button
                         type="button"
                         aria-expanded={abierto}
@@ -203,7 +238,7 @@ export default function MiCuenta() {
             </section>
           )}
 
-          <section>
+          <section className="min-w-0">
             <div role="tablist" aria-label="Historial" className="grid grid-cols-2 gap-1 rounded-xl border-[1.5px] border-tinta p-1">
               {(
                 [
