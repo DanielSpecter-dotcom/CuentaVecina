@@ -36,15 +36,31 @@ export default function Login() {
   }
 
   return (
-    <main className="cuaderno min-h-screen py-10 pr-4 pl-15">
-      <div className="mx-auto flex max-w-sm flex-col gap-6">
+    <main className="cuaderno min-h-screen py-10 pr-4 pl-15 lg:flex lg:items-center">
+      {/* Celular: una columna. Escritorio: la propuesta de valor a la izquierda y el acceso a la derecha. */}
+      <div className="mx-auto grid w-full max-w-sm gap-6 lg:max-w-5xl lg:grid-cols-[1fr_24rem] lg:items-center lg:gap-x-20">
         <div>
           <img src="/favicon.svg" alt="" className="h-14 w-14" />
           <p className="mt-2 font-display text-4xl font-extrabold tracking-tight">CuentaVecina</p>
           <p className="mt-1 font-display text-xl font-bold">
             <span className="resaltado">El cuaderno de fiados</span> del barrio, ahora digital.
           </p>
+          <ul className="mt-8 hidden max-w-md space-y-4 text-lg lg:block">
+            <li className="flex gap-3">
+              <span aria-hidden="true" className="font-display font-extrabold text-vencido">1</span>
+              Apunta fiados a fin de mes y ventas en cuotas con la tasa pactada con cada vecino.
+            </li>
+            <li className="flex gap-3">
+              <span aria-hidden="true" className="font-display font-extrabold text-vencido">2</span>
+              Calcula intereses, mora y cuotas con el método francés, dentro de los topes del BCRP.
+            </li>
+            <li className="flex gap-3">
+              <span aria-hidden="true" className="font-display font-extrabold text-vencido">3</span>
+              Tus clientes ven su cuenta y reciben recordatorios de pago en el celular.
+            </li>
+          </ul>
         </div>
+        <div className="flex min-w-0 flex-col gap-6">
         {instalacionPendiente && (
           <Sello className="block p-5">
             <p className="font-display text-lg font-bold">Primera vez aquí</p>
@@ -91,6 +107,7 @@ export default function Login() {
             Registra tu negocio
           </Link>
         </p>
+        </div>
       </div>
     </main>
   )
