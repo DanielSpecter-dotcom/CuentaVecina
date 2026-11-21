@@ -1,23 +1,25 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Pwa } from './components/Pwa'
-import { Boton } from './components/ui'
+import { Boton, Cargando } from './components/ui'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Ayuda from './pages/Ayuda'
-import Instalacion from './pages/Instalacion'
-import MiCuenta from './pages/cliente/MiCuenta'
 import Login from './pages/Login'
-import RegistroNegocio from './pages/RegistroNegocio'
-import Administradores from './pages/sistema/Administradores'
-import Bcrp from './pages/sistema/Bcrp'
-import Solicitudes from './pages/sistema/Solicitudes'
-import Tiendas from './pages/sistema/Tiendas'
-import Clientes from './pages/tienda/Clientes'
-import Cobranza from './pages/tienda/Cobranza'
-import Inicio from './pages/tienda/Inicio'
-import NuevaVenta from './pages/tienda/NuevaVenta'
-import Productos from './pages/tienda/Productos'
+
+// División de código: cada rol descarga solo sus pantallas (todas quedan en el precache de la PWA).
+const Ayuda = lazy(() => import('./pages/Ayuda'))
+const Instalacion = lazy(() => import('./pages/Instalacion'))
+const RegistroNegocio = lazy(() => import('./pages/RegistroNegocio'))
+const MiCuenta = lazy(() => import('./pages/cliente/MiCuenta'))
+const Administradores = lazy(() => import('./pages/sistema/Administradores'))
+const Bcrp = lazy(() => import('./pages/sistema/Bcrp'))
+const Solicitudes = lazy(() => import('./pages/sistema/Solicitudes'))
+const Tiendas = lazy(() => import('./pages/sistema/Tiendas'))
+const Clientes = lazy(() => import('./pages/tienda/Clientes'))
+const Cobranza = lazy(() => import('./pages/tienda/Cobranza'))
+const Inicio = lazy(() => import('./pages/tienda/Inicio'))
+const NuevaVenta = lazy(() => import('./pages/tienda/NuevaVenta'))
+const Productos = lazy(() => import('./pages/tienda/Productos'))
 import { INICIO_POR_ROL, ProtectedRoute } from './routes/ProtectedRoute'
 
 function Raiz() {
@@ -57,6 +59,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Suspense fallback={<Cargando />}>
         <Routes>
           <Route path="/" element={<Raiz />} />
           <Route path="/login" element={<Login />} />
@@ -78,6 +81,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
         <Pwa />
       </BrowserRouter>
     </AuthProvider>

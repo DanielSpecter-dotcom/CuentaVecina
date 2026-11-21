@@ -209,3 +209,12 @@ export function Dato({ etiqueta, valor, destacado }: { etiqueta: string; valor: 
     </div>
   )
 }
+
+/** Indicador de carga de pantalla (código de la ruta o datos). */
+export function Cargando() {
+  return (
+    <p role="status" className="p-6 text-sm text-tinta-suave">
+      Cargando…
+    </p>
+  )
+}
