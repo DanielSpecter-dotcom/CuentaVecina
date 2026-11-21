@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { CamposTasa, type ValorTasa } from '../../components/CamposTasa'
-import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
+import { Avatar, Paso, Segmentado } from '../../components/cuaderno'
+import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { describirTasa } from '../../lib/codigos'
 import { dinero } from '../../lib/formato'
@@ -56,6 +58,8 @@ function aForm(c: Cliente): Form {
     dia_pago: String(c.dia_pago),
   }
 }
+
+const accion = 'inline-flex min-h-11 min-w-11 items-center underline-offset-4 hover:underline'
 
 export default function Clientes() {
   const { tienda } = useAuth()
@@ -158,179 +162,247 @@ export default function Clientes() {
 
   const visibles = lista.filter((c) => `${c.nombre} ${c.documento}`.toLowerCase().includes(filtro.toLowerCase()))
 
+  /** Usuario del cliente y sus acciones (igual en la ficha y en la tabla). */
+  const usuarioDe = (c: Cliente, perfil?: Perfil, tabla = false) =>
+    perfil ? (
+      <div className={tabla ? 'whitespace-nowrap [&>button]:mr-3' : 'flex flex-wrap items-center gap-x-3'}>
+        <span className={tabla ? 'block' : ''}>
+          {perfil.usuario} {!perfil.activo && <Etiqueta color="rojo">inactivo</Etiqueta>}
+        </span>
+        <button className={`${accion} font-bold`} aria-label={`Restablecer clave de ${c.nombre}`} onClick={() => setCuenta({ cliente: c, perfil, password: '' })}>
+          Restablecer clave
+        </button>
+        <button className={`${accion} text-tinta-suave`} aria-label={`${perfil.activo ? 'Desactivar' : 'Activar'} usuario de ${c.nombre}`} onClick={() => activarUsuario(perfil)}>
+          {perfil.activo ? 'Desactivar' : 'Activar'}
+        </button>
+      </div>
+    ) : (
+      <button className={`${accion} font-bold underline`} aria-label={`Crear usuario para ${c.nombre}`} onClick={() => setCuenta({ cliente: c, password: '' })}>
+        <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+        Crear usuario
+      </button>
+    )
+
+  const estadoDe = (c: Cliente) => (c.estado ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>)
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold sm:text-3xl">Clientes</h1>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <input
-            type="search"
-            aria-label="Buscar cliente por nombre o DNI"
-            placeholder="Buscar por nombre o DNI…"
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className="min-w-0 flex-1"
-          />
-          <Boton onClick={() => setForm({ ...vacio })}>+ Nuevo cliente</Boton>
-        </div>
+      <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Clientes</h1>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          type="search"
+          aria-label="Buscar cliente por nombre o DNI"
+          placeholder="Buscar por nombre o DNI…"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          className="w-full min-w-0 sm:flex-1"
+        />
+        <Boton onClick={() => setForm({ ...vacio })} className="w-full sm:w-auto">
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Nuevo cliente
+        </Boton>
       </div>
       {error && !form && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
-      <Tarjeta>
-        {visibles.length === 0 ? (
-          <Vacio>{lista.length ? `Ningún cliente coincide con "${filtro}".` : 'Aún no hay clientes. Registra el primero con "+ Nuevo cliente".'}</Vacio>
-        ) : (
-          <div className="overflow-x-auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Tasa pactada</th>
-                  <th>Moratoria</th>
-                  <th className="text-right">Límite</th>
-                  <th>Corte / pago</th>
-                  <th>Usuario</th>
-                  <th>Estado</th>
-                  <th><span className="sr-only">Acciones</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((c) => {
-                  const perfil = usuarios.find((u) => u.cliente_id === c.id)
-                  const m = c.moneda ? 'USD' : 'PEN'
-                  return (
-                    <tr key={c.id} className={c.estado ? '' : 'bg-stone-50'}>
-                      <td>
-                        <Link to={`/tienda/cobranza?cliente=${c.id}`} className="font-medium text-marca-800 hover:underline">
-                          {c.nombre}
-                        </Link>
-                        <div className="text-xs text-stone-600">
-                          DNI {c.documento} {c.telefono && `· ${c.telefono}`}
-                        </div>
-                      </td>
-                      <td className="text-xs">{describirTasa(c.tipo_tasa, c.tasa_compensatoria, c.periodo_tasa, c.capitalizacion)}</td>
-                      <td className="text-xs">{describirTasa(c.tipo_tasa_moratoria, c.tasa_moratoria, c.periodo_tasa_moratoria, c.capitalizacion_moratoria)}</td>
-                      <td className="text-right">
-                        {dinero(c.limite_credito, m)}
-                        <div className="text-xs text-stone-600">hasta {c.plazo_max_meses} cuotas</div>
-                      </td>
-                      <td className="text-xs">
-                        Corte {c.dia_corte} · Pago {c.dia_pago}
-                      </td>
-                      <td className="text-xs">
-                        {perfil ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1">
-                              {perfil.usuario} {!perfil.activo && <Etiqueta color="rojo">inactivo</Etiqueta>}
-                            </div>
-                            <div className="flex gap-3">
-                              <button
-                                className="min-h-8 text-marca-800 underline-offset-2 hover:underline"
-                                aria-label={`Restablecer contraseña de ${c.nombre}`}
-                                onClick={() => setCuenta({ cliente: c, perfil, password: '' })}
-                              >
-                                Restablecer clave
-                              </button>
-                              <button
-                                className="min-h-8 text-stone-700 underline-offset-2 hover:underline"
-                                aria-label={`${perfil.activo ? 'Desactivar' : 'Activar'} usuario de ${c.nombre}`}
-                                onClick={() => activarUsuario(perfil)}
-                              >
-                                {perfil.activo ? 'Desactivar' : 'Activar'}
-                              </button>
-                            </div>
+
+      {visibles.length === 0 ? (
+        <Vacio>{lista.length ? `Ningún cliente coincide con "${filtro}".` : 'Aún no hay clientes. Registra el primero con "+ Nuevo cliente".'}</Vacio>
+      ) : (
+        <>
+          {/* Celular y pantallas medianas: fichas (en 2 columnas desde 640 px); la tabla solo cuando entra completa. */}
+          <ul className="grid gap-3 sm:grid-cols-2 min-[75rem]:hidden">
+            {visibles.map((c) => {
+              const perfil = usuarios.find((u) => u.cliente_id === c.id)
+              const m = c.moneda ? 'USD' : 'PEN'
+              return (
+                <li key={c.id} className={`rounded-2xl border border-papel-borde p-4 ${c.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
+                  <div className="flex items-center gap-3">
+                    <Avatar nombre={c.nombre} activo={c.estado} />
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/tienda/cobranza?cliente=${c.id}`}
+                        // El área de toque se amplía a 44 px sin mover el texto.
+                        className="relative block font-bold underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] hover:underline"
+                      >
+                        <span className="block truncate">{c.nombre}</span>
+                      </Link>
+                      <p className="truncate text-xs text-tinta-suave">
+                        DNI {c.documento} {c.telefono && `· ${c.telefono}`}
+                      </p>
+                    </div>
+                    {estadoDe(c)}
+                  </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-2.5 text-sm">
+                    <Dato etiqueta="Tasa pactada" valor={describirTasa(c.tipo_tasa, c.tasa_compensatoria, c.periodo_tasa, c.capitalizacion)} />
+                    <Dato etiqueta="Moratoria" valor={describirTasa(c.tipo_tasa_moratoria, c.tasa_moratoria, c.periodo_tasa_moratoria, c.capitalizacion_moratoria)} />
+                    <Dato
+                      etiqueta="Límite"
+                      valor={
+                        <>
+                          {dinero(c.limite_credito, m)}
+                          <span className="block text-xs font-normal text-tinta-suave">hasta {c.plazo_max_meses} cuotas</span>
+                        </>
+                      }
+                    />
+                    <Dato etiqueta="Corte / pago" valor={`día ${c.dia_corte} / día ${c.dia_pago}`} />
+                  </dl>
+                  <div className="mt-3 border-t border-dashed border-papel-borde pt-1 text-sm">{usuarioDe(c, perfil)}</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Boton variante="fantasma" aria-label={`Editar a ${c.nombre}`} onClick={() => setForm(aForm(c))}>
+                      Editar
+                    </Boton>
+                    <Boton variante="secundario" aria-label={`${c.estado ? 'Dar de baja' : 'Activar'} a ${c.nombre}`} onClick={() => cambiarEstado(c)}>
+                      {c.estado ? 'Dar de baja' : 'Activar'}
+                    </Boton>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          <Tarjeta className="hidden min-[75rem]:block">
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Tasas</th>
+                    <th>Crédito</th>
+                    <th>Usuario</th>
+                    <th>Estado</th>
+                    <th>
+                      <span className="sr-only">Acciones</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibles.map((c) => {
+                    const perfil = usuarios.find((u) => u.cliente_id === c.id)
+                    const m = c.moneda ? 'USD' : 'PEN'
+                    return (
+                      <tr key={c.id} className={c.estado ? '' : 'bg-papel-borde/40'}>
+                        <td className="min-w-44">
+                          <Link to={`/tienda/cobranza?cliente=${c.id}`} className="font-bold underline-offset-4 hover:underline">
+                            {c.nombre}
+                          </Link>
+                          <div className="text-xs whitespace-nowrap text-tinta-suave">
+                            DNI {c.documento} {c.telefono && `· ${c.telefono}`}
                           </div>
-                        ) : (
-                          <button
-                            className="min-h-8 font-medium text-marca-800 underline-offset-2 hover:underline"
-                            aria-label={`Crear usuario para ${c.nombre}`}
-                            onClick={() => setCuenta({ cliente: c, password: '' })}
-                          >
-                            + Crear usuario
-                          </button>
-                        )}
-                      </td>
-                      <td>{c.estado ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}</td>
-                      <td className="space-x-1 text-right whitespace-nowrap">
-                        <Boton variante="fantasma" aria-label={`Editar a ${c.nombre}`} onClick={() => setForm(aForm(c))}>
-                          Editar
-                        </Boton>
-                        <Boton variante="secundario" aria-label={`${c.estado ? 'Dar de baja' : 'Activar'} a ${c.nombre}`} onClick={() => cambiarEstado(c)}>
-                          {c.estado ? 'Dar de baja' : 'Activar'}
-                        </Boton>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Tarjeta>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="font-bold">{describirTasa(c.tipo_tasa, c.tasa_compensatoria, c.periodo_tasa, c.capitalizacion)}</div>
+                          <div className="text-xs text-tinta-suave">
+                            Mora {describirTasa(c.tipo_tasa_moratoria, c.tasa_moratoria, c.periodo_tasa_moratoria, c.capitalizacion_moratoria)}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="font-bold">{dinero(c.limite_credito, m)}</div>
+                          <div className="text-xs text-tinta-suave">hasta {c.plazo_max_meses} cuotas</div>
+                          <div className="text-xs text-tinta-suave">
+                            corte día {c.dia_corte} · pago día {c.dia_pago}
+                          </div>
+                        </td>
+                        <td className="text-xs">{usuarioDe(c, perfil, true)}</td>
+                        <td>{estadoDe(c)}</td>
+                        <td className="space-x-1 text-right whitespace-nowrap">
+                          <Boton variante="fantasma" className="px-3" aria-label={`Editar a ${c.nombre}`} onClick={() => setForm(aForm(c))}>
+                            Editar
+                          </Boton>
+                          <Boton variante="secundario" className="px-4" aria-label={`${c.estado ? 'Dar de baja' : 'Activar'} a ${c.nombre}`} onClick={() => cambiarEstado(c)}>
+                            {c.estado ? 'Dar de baja' : 'Activar'}
+                          </Boton>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Tarjeta>
+        </>
+      )}
 
       <Modal titulo={form?.id ? 'Editar cliente' : 'Nuevo cliente'} abierto={!!form} onCerrar={() => setForm(null)} ancho="max-w-3xl">
         {form && (
-          <form onSubmit={guardar} className="space-y-4">
+          <form onSubmit={guardar} className="space-y-6">
             {error && <Alerta>{error}</Alerta>}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Campo etiqueta="Nombre completo" ayuda="Nombres y apellidos del vecino." className="sm:col-span-2">
-                <input value={form.nombre} onChange={set('nombre')} required maxLength={100} />
-              </Campo>
-              <Campo etiqueta="DNI" ayuda="8 dígitos. Será también su usuario para consultar su cuenta.">
-                <input value={form.documento} onChange={set('documento')} required pattern="[0-9]{8}" maxLength={8} inputMode="numeric" />
-              </Campo>
-              <Campo etiqueta="Teléfono" opcional ayuda="Celular de 9 dígitos que empiece con 9.">
-                <input type="tel" value={form.telefono} onChange={set('telefono')} pattern="9[0-9]{8}" maxLength={9} inputMode="numeric" />
-              </Campo>
-              <Campo etiqueta="Correo" opcional ayuda="Solo de contacto.">
-                <input type="email" value={form.correo} onChange={set('correo')} maxLength={100} />
-              </Campo>
-              <Campo etiqueta="Dirección" opcional ayuda="Ayuda a ubicar al vecino en la zona.">
-                <input value={form.direccion} onChange={set('direccion')} maxLength={150} />
-              </Campo>
-            </div>
+            <section className="space-y-3">
+              <Paso n={1}>Datos</Paso>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Campo etiqueta="Nombre completo" ayuda="Nombres y apellidos del vecino." className="sm:col-span-2">
+                  <input value={form.nombre} onChange={set('nombre')} required maxLength={100} />
+                </Campo>
+                <Campo etiqueta="DNI" ayuda="8 dígitos. Será también su usuario para consultar su cuenta.">
+                  <input value={form.documento} onChange={set('documento')} required pattern="[0-9]{8}" maxLength={8} inputMode="numeric" />
+                </Campo>
+                <Campo etiqueta="Teléfono" opcional ayuda="Celular de 9 dígitos que empiece con 9.">
+                  <input type="tel" value={form.telefono} onChange={set('telefono')} pattern="9[0-9]{8}" maxLength={9} inputMode="numeric" />
+                </Campo>
+                <Campo etiqueta="Correo" opcional ayuda="Solo de contacto.">
+                  <input type="email" value={form.correo} onChange={set('correo')} maxLength={100} />
+                </Campo>
+                <Campo etiqueta="Dirección" opcional ayuda="Ayuda a ubicar al vecino en la zona.">
+                  <input value={form.direccion} onChange={set('direccion')} maxLength={150} />
+                </Campo>
+              </div>
+            </section>
 
-            <CamposTasa
-              titulo="Tasa de interés compensatoria pactada"
-              valor={form.tasa}
-              onChange={(tasa) => setForm({ ...form, tasa })}
-              ayudaValor="Tasa que pagará el cliente por el crédito, en porcentaje. No puede superar la tasa máxima del BCRP vigente."
-            />
-            <CamposTasa
-              titulo="Tasa de interés moratoria pactada"
-              valor={form.mora}
-              onChange={(mora) => setForm({ ...form, mora })}
-              ayudaValor="Tasa adicional que se cobra por los días de atraso sobre el total que debió pagarse."
-            />
+            <section className="space-y-3">
+              <Paso n={2}>Tasa pactada</Paso>
+              <CamposTasa
+                titulo="Tasa de interés compensatoria pactada"
+                valor={form.tasa}
+                onChange={(tasa) => setForm({ ...form, tasa })}
+                ayudaValor="Tasa que pagará el cliente por el crédito, en porcentaje. No puede superar la tasa máxima del BCRP vigente."
+              />
+            </section>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <section className="space-y-3">
+              <Paso n={3}>Tasa moratoria</Paso>
+              <CamposTasa
+                titulo="Tasa de interés moratoria pactada"
+                valor={form.mora}
+                onChange={(mora) => setForm({ ...form, mora })}
+                ayudaValor="Tasa adicional que se cobra por los días de atraso sobre el total que debió pagarse."
+              />
+            </section>
+
+            <section className="space-y-3">
+              <Paso n={4}>Crédito</Paso>
               <Campo etiqueta="Moneda" ayuda="Moneda en la que se lleva el crédito del cliente.">
-                <select value={form.usd ? 'USD' : 'PEN'} onChange={(e) => setForm({ ...form, usd: e.target.value === 'USD' })}>
-                  <option value="PEN">Soles (S/)</option>
-                  <option value="USD">Dólares (US$)</option>
-                </select>
+                <Segmentado
+                  etiqueta="Moneda"
+                  valor={form.usd ? 'USD' : 'PEN'}
+                  onChange={(v) => setForm({ ...form, usd: v === 'USD' })}
+                  opciones={[
+                    { valor: 'PEN', titulo: 'Soles', detalle: 'S/' },
+                    { valor: 'USD', titulo: 'Dólares', detalle: 'US$' },
+                  ]}
+                />
               </Campo>
-              <Campo etiqueta="Límite de crédito" ayuda="Deuda máxima permitida. No se aceptan compras que la superen.">
-                <input type="number" step="0.01" min="0.01" value={form.limite_credito} onChange={set('limite_credito')} required />
-              </Campo>
-              <Campo etiqueta="Máx. de cuotas" ayuda="Número máximo de meses en que se le puede dar crédito (1 a 36).">
-                <input type="number" min={1} max={36} value={form.plazo_max_meses} onChange={set('plazo_max_meses')} required />
-              </Campo>
-              <Campo etiqueta="Día de corte" ayuda="Día del mes (1 a 28) en que se cierra el ciclo. Compras posteriores pasan al mes siguiente.">
-                <input type="number" min={1} max={28} value={form.dia_corte} onChange={set('dia_corte')} required />
-              </Campo>
-              <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28, mayor que el día de corte) en que el cliente se compromete a pagar.">
-                <input type="number" min={2} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
-              </Campo>
-            </div>
-            <div className="flex justify-end gap-2">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Campo etiqueta="Límite de crédito" ayuda="Deuda máxima permitida. No se aceptan compras que la superen.">
+                  <input type="number" step="0.01" min="0.01" value={form.limite_credito} onChange={set('limite_credito')} required />
+                </Campo>
+                <Campo etiqueta="Máx. de cuotas" ayuda="Número máximo de meses en que se le puede dar crédito (1 a 36).">
+                  <input type="number" min={1} max={36} value={form.plazo_max_meses} onChange={set('plazo_max_meses')} required />
+                </Campo>
+                <Campo etiqueta="Día de corte" ayuda="Día del mes (1 a 28) en que se cierra el ciclo. Compras posteriores pasan al mes siguiente.">
+                  <input type="number" min={1} max={28} value={form.dia_corte} onChange={set('dia_corte')} required />
+                </Campo>
+                <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28, mayor que el día de corte) en que el cliente se compromete a pagar.">
+                  <input type="number" min={2} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
+                </Campo>
+              </div>
+            </section>
+            <PieModal>
               <Boton type="button" variante="secundario" onClick={() => setForm(null)}>
                 Cancelar
               </Boton>
               <Boton type="submit" cargando={guardando}>
                 Guardar
               </Boton>
-            </div>
+            </PieModal>
           </form>
         )}
       </Modal>
@@ -345,16 +417,18 @@ export default function Clientes() {
           <form onSubmit={gestionarCuenta} className="space-y-4">
             {error && <Alerta>{error}</Alerta>}
             {!cuenta.perfil && (
-              <p className="text-sm text-stone-600">
-                Su usuario será su DNI (<strong>{cuenta.cliente.documento}</strong>). Con él podrá ver sus compras, cuotas y pagos.
+              <p className="text-sm text-tinta-suave">
+                Su usuario será su DNI (<strong className="text-tinta">{cuenta.cliente.documento}</strong>). Con él podrá ver sus compras, cuotas y pagos.
               </p>
             )}
             <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Entrégasela al cliente; no se envía ningún correo.">
               <input type="text" autoComplete="new-password" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} />
             </Campo>
-            <Boton type="submit" cargando={guardando} className="w-full">
-              {cuenta.perfil ? 'Restablecer' : 'Crear usuario'}
-            </Boton>
+            <PieModal>
+              <Boton type="submit" cargando={guardando} className="w-full">
+                {cuenta.perfil ? 'Restablecer' : 'Crear usuario'}
+              </Boton>
+            </PieModal>
           </form>
         )}
       </Modal>

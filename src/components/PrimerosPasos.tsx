@@ -1,6 +1,7 @@
 // "Primeros pasos": la ruta para poner en marcha (y probar en vivo) la app desde cero.
 // Cada paso se marca solo cuando ya existe el dato correspondiente en la base de datos.
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Rol } from '../types'
@@ -60,38 +61,49 @@ export function PrimerosPasos({ rol }: { rol: Extract<Rol, 'admin_sistema' | 'ad
   if (completo) return null
 
   return (
-    <section aria-labelledby="primeros-pasos" className="rounded-2xl border border-marca-200 bg-marca-50/60 p-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section aria-labelledby="primeros-pasos" className="rounded-xl border-[1.5px] border-dashed border-tinta-suave bg-white p-3.5">
+      <div className="mb-1 flex items-center justify-between gap-3">
         <h2 id="primeros-pasos" className="text-lg font-bold">
           Primeros pasos
         </h2>
-        <span className="text-sm text-stone-600">
+        <span className="text-sm text-tinta-suave">
           {hechos} de {pasos.length}
         </span>
       </div>
-      <ol className="space-y-2">
-        {pasos.map((p, i) => (
-          <li key={p.texto} className="flex items-start gap-3">
+      <ol className="divide-y divide-papel-borde">
+        {pasos.map((p, i) => {
+          const texto = (
+            <span className={`min-w-0 ${p.hecho ? 'text-tinta-suave line-through' : ''}`}>
+              <span className={`font-bold ${p.a && !p.hecho ? 'underline underline-offset-4' : ''}`}>{p.texto}</span>
+              <span className="block text-sm text-tinta-suave no-underline">{p.detalle}</span>
+            </span>
+          )
+          const circulo = (
             <span
               aria-hidden="true"
-              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                p.hecho ? 'bg-marca-700 text-white' : 'border border-stone-400 bg-white text-stone-600'
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                p.hecho ? 'bg-tinta text-resaltador' : 'border-[1.5px] border-tinta bg-white text-tinta'
               }`}
             >
-              {p.hecho ? '✓' : i + 1}
+              {p.hecho ? <Check className="size-4" strokeWidth={3} /> : i + 1}
             </span>
-            <span className={p.hecho ? 'text-stone-500 line-through' : ''}>
+          )
+          return (
+            <li key={p.texto}>
               {p.a && !p.hecho ? (
-                <Link to={p.a} className="font-semibold text-marca-800 underline underline-offset-2">
-                  {p.texto}
+                <Link to={p.a} className="flex min-h-14 items-start gap-3 py-2.5 hover:bg-resaltador-suave/60">
+                  {circulo}
+                  {texto}
                 </Link>
               ) : (
-                <span className="font-semibold">{p.texto}</span>
+                <div className="flex min-h-14 items-start gap-3 py-2.5">
+                  {circulo}
+                  {texto}
+                </div>
               )}
-              <span className="block text-sm text-stone-600 no-underline">{p.detalle}</span>
-            </span>
-          </li>
-        ))}
+            </li>
+          )
+        })}
       </ol>
     </section>
   )

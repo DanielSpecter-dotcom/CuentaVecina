@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
-import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
+import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
 import type { Perfil, Tienda } from '../../types'
@@ -94,132 +95,207 @@ export default function Tiendas() {
     }
   }
 
+  const editar = (t: Tienda) =>
+    setEdicion({
+      id: t.id,
+      nombre_comercial: t.nombre_comercial,
+      ruc: t.ruc,
+      giro: t.giro,
+      direccion: t.direccion,
+      telefono: t.telefono ?? '',
+      correo: t.correo ?? '',
+      hora_corte: t.hora_corte,
+    })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold sm:text-3xl">Tiendas</h1>
-        <Boton onClick={() => setEdicion({ ...tiendaVacia })}>+ Alta de tienda</Boton>
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Tiendas</h1>
+        <Boton onClick={() => setEdicion({ ...tiendaVacia })} className="max-sm:w-full">
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Alta de tienda
+        </Boton>
       </div>
       {error && !edicion && !nuevoAdmin && !reset && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
       <PrimerosPasos key={`${tiendas.length}-${admins.length}`} rol="admin_sistema" />
-      <Tarjeta>
-        {tiendas.length === 0 ? (
-          <Vacio>No hay tiendas registradas.</Vacio>
-        ) : (
-          <div className="overflow-x-auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tienda</th>
-                  <th>RUC</th>
-                  <th>Giro</th>
-                  <th>Administradores</th>
-                  <th>Alta</th>
-                  <th>Estado</th>
-                  <th><span className="sr-only">Acciones</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {tiendas.map((t) => (
-                  <tr key={t.id}>
-                    <td>
-                      <div className="font-medium">{t.nombre_comercial}</div>
-                      <div className="text-xs text-stone-600">{t.direccion}</div>
-                    </td>
-                    <td>{t.ruc}</td>
-                    <td>{t.giro}</td>
-                    <td>
-                      {admins
-                        .filter((a) => a.tienda_id === t.id)
-                        .map((a) => (
-                          <div key={a.id} className="flex items-center gap-2">
-                            <span>{a.usuario}</span>
-                            <button
-                              className="min-h-8 text-xs text-marca-800 underline-offset-2 hover:underline"
-                              aria-label={`Restablecer contraseña de ${a.usuario}`}
-                              onClick={() => setReset({ perfil: a, password: '' })}
-                            >
-                              Restablecer clave
-                            </button>
-                          </div>
-                        ))}
-                      <button
-                        className="min-h-8 text-xs font-medium text-marca-800 underline-offset-2 hover:underline"
-                        aria-label={`Crear administrador para ${t.nombre_comercial}`}
-                        onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
-                      >
-                        + Crear administrador
-                      </button>
-                    </td>
-                    <td>{formatearFecha(t.created_at)}</td>
-                    <td>{t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}</td>
-                    <td className="space-x-2 text-right whitespace-nowrap">
-                      <Boton
-                        variante="fantasma"
-                        onClick={() =>
-                          setEdicion({
-                            id: t.id,
-                            nombre_comercial: t.nombre_comercial,
-                            ruc: t.ruc,
-                            giro: t.giro,
-                            direccion: t.direccion,
-                            telefono: t.telefono ?? '',
-                            correo: t.correo ?? '',
-                            hora_corte: t.hora_corte,
-                          })
-                        }
-                      >
-                        Editar
-                      </Boton>
-                      <Boton variante={t.estado ? 'secundario' : 'primario'} onClick={() => cambiarEstado(t)}>
-                        {t.estado ? 'Dar de baja' : 'Reactivar'}
-                      </Boton>
-                    </td>
+      {tiendas.length === 0 ? (
+        <Vacio>No hay tiendas registradas.</Vacio>
+      ) : (
+        <>
+          {/* Celular y tablet: una ficha por tienda. */}
+          <ul className="grid gap-3 md:grid-cols-2 escritorio:hidden">
+            {tiendas.map((t) => {
+              const suyos = admins.filter((a) => a.tienda_id === t.id)
+              return (
+                <li key={t.id} className={`flex flex-col rounded-2xl border border-papel-borde p-4 ${t.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold">{t.nombre_comercial}</h2>
+                      <p className="text-sm text-tinta-suave">{t.direccion}</p>
+                    </div>
+                    {t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}
+                  </div>
+                  <dl className="mt-3 grid grid-cols-3 gap-2.5 text-sm">
+                    <Dato etiqueta="RUC" valor={t.ruc} />
+                    <Dato etiqueta="Giro" valor={t.giro} />
+                    <Dato etiqueta="Alta" valor={formatearFecha(t.created_at)} />
+                  </dl>
+                  <div className="mt-3 border-t border-dashed border-papel-borde pt-2">
+                    <p className="text-xs text-tinta-suave">Administradores</p>
+                    <ul>
+                      {suyos.map((a) => (
+                        <li key={a.id} className="flex flex-wrap items-center justify-between gap-x-3">
+                          <span className="font-bold">{a.usuario}</span>
+                          <button
+                            className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+                            aria-label={`Restablecer clave de ${a.usuario}`}
+                            onClick={() => setReset({ perfil: a, password: '' })}
+                          >
+                            Restablecer clave
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4"
+                      aria-label={`Crear administrador para ${t.nombre_comercial}`}
+                      onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
+                    >
+                      <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+                      Crear administrador
+                    </button>
+                  </div>
+                  <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
+                    <Boton
+                      variante="fantasma"
+                      aria-label={`Editar ${t.nombre_comercial}`}
+                      onClick={() => editar(t)}
+                    >
+                      Editar
+                    </Boton>
+                    <Boton variante={t.estado ? 'secundario' : 'primario'} aria-label={`${t.estado ? 'Dar de baja' : 'Reactivar'} ${t.nombre_comercial}`} onClick={() => cambiarEstado(t)}>
+                      {t.estado ? 'Dar de baja' : 'Reactivar'}
+                    </Boton>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Escritorio: tabla compacta, más fácil de recorrer con muchas tiendas. */}
+          <Tarjeta className="hidden escritorio:block">
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tienda</th>
+                    <th>RUC</th>
+                    <th>Giro</th>
+                    <th>Alta</th>
+                    <th>Administradores</th>
+                    <th>Estado</th>
+                    <th>
+                      <span className="sr-only">Acciones</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Tarjeta>
+                </thead>
+                <tbody>
+                  {tiendas.map((t) => {
+                    const suyos = admins.filter((a) => a.tienda_id === t.id)
+                    return (
+                      <tr key={t.id} className={t.estado ? '' : 'bg-papel-borde/40'}>
+                        <td>
+                          <div className="font-bold">{t.nombre_comercial}</div>
+                          <div className="text-xs text-tinta-suave">{t.direccion}</div>
+                        </td>
+                        <td>{t.ruc}</td>
+                        <td>{t.giro}</td>
+                        <td>{formatearFecha(t.created_at)}</td>
+                        <td>
+                          {suyos.map((a) => (
+                            <div key={a.id} className="flex items-center gap-3 whitespace-nowrap">
+                              <span className="font-bold">{a.usuario}</span>
+                              <button
+                                className="inline-flex min-h-11 items-center text-xs underline underline-offset-4"
+                                aria-label={`Restablecer clave de ${a.usuario}`}
+                                onClick={() => setReset({ perfil: a, password: '' })}
+                              >
+                                Restablecer clave
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            className="inline-flex min-h-11 items-center text-xs font-bold whitespace-nowrap underline underline-offset-4"
+                            aria-label={`Crear administrador para ${t.nombre_comercial}`}
+                            onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
+                          >
+                            <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+                            Crear administrador
+                          </button>
+                        </td>
+                        <td>{t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}</td>
+                        <td className="space-x-1 text-right whitespace-nowrap">
+                          <Boton variante="fantasma" className="px-3" aria-label={`Editar ${t.nombre_comercial}`} onClick={() => editar(t)}>
+                            Editar
+                          </Boton>
+                          <Boton
+                            variante={t.estado ? 'secundario' : 'primario'}
+                            className="px-4"
+                            aria-label={`${t.estado ? 'Dar de baja' : 'Reactivar'} ${t.nombre_comercial}`}
+                            onClick={() => cambiarEstado(t)}
+                          >
+                            {t.estado ? 'Dar de baja' : 'Reactivar'}
+                          </Boton>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Tarjeta>
+        </>
+      )}
 
       <Modal titulo={edicion?.id ? 'Editar tienda' : 'Alta de tienda'} abierto={!!edicion} onCerrar={() => setEdicion(null)}>
         {edicion && (
-          <form onSubmit={guardarTienda} className="grid gap-4 sm:grid-cols-2">
-            {error && <div className="sm:col-span-2"><Alerta>{error}</Alerta></div>}
-            <Campo etiqueta="Nombre comercial" ayuda="Nombre del negocio como lo conocen sus clientes.">
-              <input value={edicion.nombre_comercial} onChange={set('nombre_comercial')} required maxLength={100} />
-            </Campo>
-            <Campo etiqueta="RUC" ayuda="11 dígitos. Debe ser único en la plataforma.">
-              <input value={edicion.ruc} onChange={set('ruc')} required pattern="[0-9]{11}" inputMode="numeric" maxLength={11} />
-            </Campo>
-            <Campo etiqueta="Giro" ayuda="Bodega, panadería, peluquería, etc.">
-              <input value={edicion.giro} onChange={set('giro')} required maxLength={50} />
-            </Campo>
-            <Campo etiqueta="Dirección" ayuda="Dirección del local.">
-              <input value={edicion.direccion} onChange={set('direccion')} required maxLength={150} />
-            </Campo>
-            <Campo etiqueta="Teléfono" opcional ayuda="Celular de 9 dígitos que empiece con 9.">
-              <input type="tel" inputMode="numeric" value={edicion.telefono} onChange={set('telefono')} pattern="9[0-9]{8}" maxLength={9} />
-            </Campo>
-            <Campo etiqueta="Correo" opcional ayuda="Correo de contacto.">
-              <input type="email" value={edicion.correo} onChange={set('correo')} maxLength={100} />
-            </Campo>
-            <Campo
-              etiqueta="Hora de corte"
-              ayuda="Hora límite (hora de Lima) del día de corte. Las compras del día de corte posteriores a esta hora pasan al mes siguiente."
-            >
-              <input type="time" step={1} value={edicion.hora_corte} onChange={set('hora_corte')} required />
-            </Campo>
-            <div className="flex items-end justify-end gap-2 sm:col-span-2">
+          <form onSubmit={guardarTienda} className="space-y-4">
+            {error && <Alerta>{error}</Alerta>}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Campo etiqueta="Nombre comercial" ayuda="Nombre del negocio como lo conocen sus clientes.">
+                <input value={edicion.nombre_comercial} onChange={set('nombre_comercial')} required maxLength={100} />
+              </Campo>
+              <Campo etiqueta="RUC" ayuda="11 dígitos. Debe ser único en la plataforma.">
+                <input value={edicion.ruc} onChange={set('ruc')} required pattern="[0-9]{11}" inputMode="numeric" maxLength={11} />
+              </Campo>
+              <Campo etiqueta="Giro" ayuda="Bodega, panadería, peluquería, etc.">
+                <input value={edicion.giro} onChange={set('giro')} required maxLength={50} />
+              </Campo>
+              <Campo etiqueta="Dirección" ayuda="Dirección del local.">
+                <input value={edicion.direccion} onChange={set('direccion')} required maxLength={150} />
+              </Campo>
+              <Campo etiqueta="Teléfono" opcional ayuda="Celular de 9 dígitos que empiece con 9.">
+                <input type="tel" inputMode="numeric" value={edicion.telefono} onChange={set('telefono')} pattern="9[0-9]{8}" maxLength={9} />
+              </Campo>
+              <Campo etiqueta="Correo" opcional ayuda="Correo de contacto.">
+                <input type="email" value={edicion.correo} onChange={set('correo')} maxLength={100} />
+              </Campo>
+              <Campo
+                etiqueta="Hora de corte"
+                ayuda="Hora límite (hora de Lima) del día de corte. Las compras del día de corte posteriores a esta hora pasan al mes siguiente."
+              >
+                <input type="time" step={1} value={edicion.hora_corte} onChange={set('hora_corte')} required />
+              </Campo>
+            </div>
+            <PieModal>
               <Boton type="button" variante="secundario" onClick={() => setEdicion(null)}>
                 Cancelar
               </Boton>
               <Boton type="submit" cargando={guardando}>
                 Guardar
               </Boton>
-            </div>
+            </PieModal>
           </form>
         )}
       </Modal>
@@ -237,9 +313,11 @@ export default function Tiendas() {
             <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. Entrégasela al responsable; no se envía ningún correo.">
               <input type="text" autoComplete="new-password" value={nuevoAdmin.password} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, password: e.target.value })} required minLength={8} />
             </Campo>
-            <Boton type="submit" cargando={guardando} className="w-full">
-              Crear administrador
-            </Boton>
+            <PieModal>
+              <Boton type="submit" cargando={guardando} className="w-full">
+                Crear administrador
+              </Boton>
+            </PieModal>
           </form>
         )}
       </Modal>
@@ -251,9 +329,11 @@ export default function Tiendas() {
             <Campo etiqueta="Nueva contraseña" ayuda="Mínimo 8 caracteres.">
               <input type="text" autoComplete="new-password" value={reset.password} onChange={(e) => setReset({ ...reset, password: e.target.value })} required minLength={8} />
             </Campo>
-            <Boton type="submit" cargando={guardando} className="w-full">
-              Restablecer
-            </Boton>
+            <PieModal>
+              <Boton type="submit" cargando={guardando} className="w-full">
+                Restablecer
+              </Boton>
+            </PieModal>
           </form>
         )}
       </Modal>

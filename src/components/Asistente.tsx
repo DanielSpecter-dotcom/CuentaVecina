@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { X } from 'lucide-react'
 import { invocar, mensajeError } from '../lib/supabase'
 import { Boton } from './ui'
 
@@ -15,6 +16,28 @@ export function Asistente() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const caja = useRef<HTMLDivElement>(null)
+  const campo = useRef<HTMLInputElement>(null)
+
+  // Se abre desde la cabecera (escritorio) o la navegación inferior (móvil): Layout dispara el evento.
+  useEffect(() => {
+    const abrir = () => setAbierto(true)
+    window.addEventListener('abrir-asistente', abrir)
+    return () => window.removeEventListener('abrir-asistente', abrir)
+  }, [])
+
+  // Al abrir, el foco va a la pregunta; Escape cierra el panel.
+  useEffect(() => {
+    if (!abierto) return
+    // Al cerrar, el foco vuelve al botón que abrió el panel.
+    const anterior = document.activeElement as HTMLElement | null
+    campo.current?.focus()
+    const cerrar = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
+    window.addEventListener('keydown', cerrar)
+    return () => {
+      window.removeEventListener('keydown', cerrar)
+      anterior?.focus()
+    }
+  }, [abierto])
 
   // scrollTop y no scrollIntoView: este también desplaza ventanas/iframes padres y deja la vista en blanco.
   useEffect(() => {
@@ -42,37 +65,38 @@ export function Asistente() {
   }
 
   return (
-    <div className="no-imprimir fixed right-4 bottom-4 z-30 flex flex-col items-end gap-3">
+    <div className="no-imprimir fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 max-md:inset-x-0 max-md:bottom-0">
       {abierto && (
         <section
           aria-label="Asistente de CuentaVecina"
-          className="flex h-128 max-h-[calc(100dvh-6rem)] w-88 max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-stone-200 bg-white shadow-xl"
+          className="flex h-128 max-h-[calc(100dvh-6rem)] w-88 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-papel-borde bg-papel shadow-xl max-md:h-[92dvh] max-md:max-h-none max-md:w-full max-md:max-w-none max-md:rounded-b-none max-md:rounded-t-3xl"
         >
-          <header className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
-            <h2 className="text-lg font-semibold text-marca-800">Asistente</h2>
-            <button onClick={() => setAbierto(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-2xl text-stone-600 hover:bg-stone-100" aria-label="Cerrar asistente">
-              &times;
+          <header className="flex items-center justify-between bg-tinta px-4 py-2 text-papel">
+            <h2 className="text-lg font-bold text-papel">Asistente</h2>
+            <button onClick={() => setAbierto(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-papel hover:bg-white/10" aria-label="Cerrar asistente">
+              <X aria-hidden="true" className="size-6" />
             </button>
           </header>
           <div ref={caja} className="flex-1 space-y-3 overflow-y-auto p-4 text-sm" aria-live="polite">
             {mensajes.length === 0 && (
-              <p className="text-stone-600">Pregúntame sobre CuentaVecina o tu cuenta: cuánto debes, cuándo pagas, cómo se calculan los intereses…</p>
+              <p className="text-tinta-suave">Pregúntame sobre CuentaVecina o tu cuenta: cuánto debes, cuándo pagas, cómo se calculan los intereses…</p>
             )}
             {mensajes.map((m, i) => (
               <p
                 key={i}
                 className={`max-w-[85%] rounded-2xl px-3 py-2 whitespace-pre-wrap ${
-                  m.role === 'user' ? 'ml-auto bg-marca-700 text-white' : 'bg-stone-100 text-stone-800'
+                  m.role === 'user' ? 'ml-auto bg-tinta text-papel' : 'border border-papel-borde bg-white text-tinta'
                 }`}
               >
                 {m.content}
               </p>
             ))}
-            {cargando && <p className="text-stone-600" role="status">Escribiendo…</p>}
-            {error && <p className="text-red-700" role="alert">{error}</p>}
+            {cargando && <p className="text-tinta-suave" role="status">Escribiendo…</p>}
+            {error && <p className="font-bold text-vencido" role="alert">{error}</p>}
           </div>
-          <form onSubmit={enviar} className="flex gap-2 border-t border-stone-100 p-3">
+          <form onSubmit={enviar} className="flex gap-2 border-t border-papel-borde p-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <input
+              ref={campo}
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               placeholder="Escribe tu pregunta"
@@ -86,13 +110,6 @@ export function Asistente() {
           </form>
         </section>
       )}
-      <button
-        onClick={() => setAbierto((v) => !v)}
-        className="min-h-12 rounded-full bg-marca-800 px-4 py-3 text-sm font-medium text-white shadow-lg ring-2 ring-white hover:bg-marca-900"
-        aria-expanded={abierto}
-      >
-        <span aria-hidden="true">💬</span> {abierto ? 'Ocultar asistente' : 'Asistente'}
-      </button>
     </div>
   )
 }

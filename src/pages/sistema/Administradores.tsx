@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
-import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
+import { Plus } from 'lucide-react'
+import { Avatar } from '../../components/cuaderno'
+import { Alerta, Boton, Campo, Etiqueta, Modal, PieModal, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
@@ -70,55 +72,47 @@ export default function Administradores() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold sm:text-3xl">Administradores del sistema</h1>
-        <Boton onClick={() => setNuevo({ nombre: '', usuario: '', password: '' })}>+ Nuevo administrador</Boton>
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Administradores del sistema</h1>
+        <Boton onClick={() => setNuevo({ nombre: '', usuario: '', password: '' })} className="max-sm:w-full">
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Nuevo administrador
+        </Boton>
       </div>
-      <p className="text-sm text-stone-600">
-        Personas que administran la plataforma: dan de alta tiendas, aprueban solicitudes y cargan las tasas del BCRP.
-      </p>
+      <p className="text-sm text-tinta-suave">Personas que administran la plataforma: dan de alta tiendas, aprueban solicitudes y cargan las tasas del BCRP.</p>
       {error && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
-      <Tarjeta>
-        {lista.length === 0 ? (
-          <Vacio>Sin administradores.</Vacio>
-        ) : (
-          <div className="overflow-x-auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Usuario</th>
-                  <th>Alta</th>
-                  <th>Estado</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lista.map((p) => (
-                  <tr key={p.id}>
-                    <td className="font-medium">
-                      {p.nombre} {p.id === yo?.id && <Etiqueta color="azul">tú</Etiqueta>}
-                    </td>
-                    <td>{p.usuario}</td>
-                    <td>{formatearFecha(p.created_at)}</td>
-                    <td>{p.activo ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">Inactivo</Etiqueta>}</td>
-                    <td className="space-x-1 text-right whitespace-nowrap">
-                      <Boton variante="fantasma" onClick={() => setReset({ perfil: p, password: '' })}>
-                        Restablecer clave
-                      </Boton>
-                      {p.id !== yo?.id && (
-                        <Boton variante="secundario" onClick={() => cambiarEstado(p)}>
-                          {p.activo ? 'Desactivar' : 'Activar'}
-                        </Boton>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Tarjeta>
+      {lista.length === 0 ? (
+        <Vacio>Sin administradores.</Vacio>
+      ) : (
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {lista.map((p) => (
+            <li key={p.id} className={`rounded-2xl border border-papel-borde p-4 ${p.activo ? 'bg-white' : 'bg-papel-borde/40'}`}>
+              <div className="flex items-center gap-3">
+                <Avatar nombre={p.nombre ?? p.usuario ?? ''} activo={p.activo} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">
+                    {p.nombre} {p.id === yo?.id && <Etiqueta color="azul">tú</Etiqueta>}
+                  </p>
+                  <p className="truncate text-sm text-tinta-suave">
+                    {p.usuario} · alta {formatearFecha(p.created_at)}
+                  </p>
+                </div>
+                {p.activo ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">Inactivo</Etiqueta>}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Boton variante="fantasma" className="px-2 whitespace-nowrap" aria-label={`Restablecer clave de ${p.usuario}`} onClick={() => setReset({ perfil: p, password: '' })}>
+                  Restablecer clave
+                </Boton>
+                {p.id !== yo?.id && (
+                  <Boton variante="secundario" aria-label={`${p.activo ? 'Desactivar' : 'Activar'} a ${p.usuario}`} onClick={() => cambiarEstado(p)}>
+                    {p.activo ? 'Desactivar' : 'Activar'}
+                  </Boton>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <Modal titulo="Nuevo administrador del sistema" abierto={!!nuevo} onCerrar={() => setNuevo(null)} ancho="max-w-md">
         {nuevo && (
@@ -132,9 +126,11 @@ export default function Administradores() {
             <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. No se envía ningún correo.">
               <input type="text" value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} required minLength={8} />
             </Campo>
-            <Boton type="submit" cargando={guardando} className="w-full">
-              Crear administrador
-            </Boton>
+            <PieModal>
+              <Boton type="submit" cargando={guardando} className="w-full">
+                Crear administrador
+              </Boton>
+            </PieModal>
           </form>
         )}
       </Modal>
@@ -145,9 +141,11 @@ export default function Administradores() {
             <Campo etiqueta="Nueva contraseña" ayuda="Mínimo 8 caracteres.">
               <input type="text" value={reset.password} onChange={(e) => setReset({ ...reset, password: e.target.value })} required minLength={8} />
             </Campo>
-            <Boton type="submit" cargando={guardando} className="w-full">
-              Restablecer
-            </Boton>
+            <PieModal>
+              <Boton type="submit" cargando={guardando} className="w-full">
+                Restablecer
+              </Boton>
+            </PieModal>
           </form>
         )}
       </Modal>
