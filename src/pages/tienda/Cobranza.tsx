@@ -104,155 +104,176 @@ export default function Cobranza() {
       {error && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
 
-      <div className="no-imprimir">
-        {cliente ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-papel-borde bg-white p-3">
-            <Avatar nombre={cliente.nombre} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-bold">{cliente.nombre}</p>
-              <p className="text-xs text-tinta-suave">DNI {cliente.documento}</p>
-              <p className="text-xs font-bold">
-                {describirTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion)} · Mora{' '}
-                {describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
-              </p>
-            </div>
-            <button type="button" onClick={() => elegirCliente('')} className="min-h-11 shrink-0 px-2 font-bold underline underline-offset-4">
-              Cambiar
-            </button>
-          </div>
-        ) : (
-          <SelectorCliente clientes={clientes} valor={clienteId} onChange={elegirCliente} ayuda="Elige al cliente para ver sus períodos con deuda." />
-        )}
-      </div>
-
-      {clienteId && (
-        <section aria-labelledby="titulo-periodos" className="no-imprimir space-y-2">
-          <h2 id="titulo-periodos" className="text-lg font-bold">
-            Períodos pendientes
-          </h2>
-          {periodos.length === 0 ? (
-            <Vacio>Sin deuda pendiente. 🎉</Vacio>
-          ) : (
-            <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2">
-              {periodos.map((p) => {
-                const vencido = p.fecha_pago < hoyLima()
-                const sel = p.fecha_pago === fechaPago
-                return (
-                  <li key={p.fecha_pago} className="shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setFechaPago(p.fecha_pago)}
-                      aria-pressed={sel}
-                      className={`flex w-44 flex-col items-start gap-1 rounded-xl bg-white p-3 text-left ${
-                        sel
-                          ? vencido
-                            ? 'border-2 border-vencido shadow-[3px_3px_0_var(--color-vencido)]'
-                            : 'border-2 border-tinta shadow-[3px_3px_0_var(--color-tinta)]'
-                          : 'border-[1.5px] border-linea'
-                      }`}
-                    >
-                      <span className="text-sm font-bold">Pago {formatearFecha(p.fecha_pago)}</span>
-                      {vencido ? <Etiqueta color="rojo">vencido</Etiqueta> : <Etiqueta>pendiente</Etiqueta>}
-                      <span className="text-xs text-tinta-suave">
-                        {p.items} {p.items === 1 ? 'ítem' : 'ítems'}
-                      </span>
-                      <span className={`font-display text-lg font-extrabold tabular-nums ${vencido ? 'text-vencido' : ''}`}>{dinero(p.total, m)}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
-      )}
-
-      {hayListado && (
-        <>
-          <section aria-label="Listado de pago" className="sm:rounded-2xl sm:border sm:border-papel-borde sm:bg-white sm:p-5 print:border-0 print:p-0">
-            <h2 className="mb-4 hidden font-display text-lg font-bold sm:block print:block">Listado de pago</h2>
-            <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
-          </section>
+      {/* Escritorio: a la izquierda quién y qué período; a la derecha el listado con el total y el botón. */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-8 print:block">
+        <div className="no-imprimir min-w-0 space-y-5 lg:sticky lg:top-22">
           <div className="no-imprimir">
+            {cliente ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-papel-borde bg-white p-3">
+                <Avatar nombre={cliente.nombre} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">{cliente.nombre}</p>
+                  <p className="text-xs text-tinta-suave">DNI {cliente.documento}</p>
+                  <p className="text-xs font-bold">
+                    {describirTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion)} · Mora{' '}
+                    {describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
+                  </p>
+                </div>
+                <button type="button" onClick={() => elegirCliente('')} className="min-h-11 shrink-0 px-2 font-bold underline underline-offset-4">
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <SelectorCliente clientes={clientes} valor={clienteId} onChange={elegirCliente} ayuda="Elige al cliente para ver sus períodos con deuda." />
+            )}
+          </div>
+
+          {clienteId && (
+            <section aria-labelledby="titulo-periodos" className="no-imprimir space-y-2">
+              <h2 id="titulo-periodos" className="text-lg font-bold">
+                Períodos pendientes
+              </h2>
+              {periodos.length === 0 ? (
+                <Vacio>Sin deuda pendiente. 🎉</Vacio>
+              ) : (
+                <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2 lg:mx-0 lg:max-h-[50dvh] lg:flex-col lg:gap-2 lg:overflow-y-auto lg:px-1 lg:pb-1">
+                  {periodos.map((p) => {
+                    const vencido = p.fecha_pago < hoyLima()
+                    const sel = p.fecha_pago === fechaPago
+                    return (
+                      <li key={p.fecha_pago} className="shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setFechaPago(p.fecha_pago)}
+                          aria-pressed={sel}
+                          className={`flex w-44 flex-col items-start gap-1 rounded-xl bg-white p-3 text-left lg:grid lg:w-full lg:grid-cols-[1fr_auto] lg:items-center lg:gap-x-3 ${
+                            sel
+                              ? vencido
+                                ? 'border-2 border-vencido shadow-[3px_3px_0_var(--color-vencido)]'
+                                : 'border-2 border-tinta shadow-[3px_3px_0_var(--color-tinta)]'
+                              : 'border-[1.5px] border-linea'
+                          }`}
+                        >
+                          <span className="text-sm font-bold">Pago {formatearFecha(p.fecha_pago)}</span>
+                          {vencido ? <Etiqueta color="rojo">vencido</Etiqueta> : <Etiqueta>pendiente</Etiqueta>}
+                          <span className="text-xs text-tinta-suave">
+                            {p.items} {p.items === 1 ? 'ítem' : 'ítems'}
+                          </span>
+                          <span className={`font-display text-lg font-extrabold tabular-nums ${vencido ? 'text-vencido' : ''}`}>{dinero(p.total, m)}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {hayListado && (
             <Campo
               etiqueta="Fecha en que paga"
               ayuda="Si es posterior a la fecha de pago, se calculan intereses por mora con la tasa moratoria pactada. No puede ser futura."
             >
               <input type="date" value={fechaEfectiva} max={hoyLima()} onChange={(e) => setFechaEfectiva(e.target.value)} />
             </Campo>
-          </div>
-          <BarraAccion>
-            <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo} className="w-full">
-              Registrar pago total de {dinero(ec.total, m)}
-            </Boton>
-            {!esMasAntiguo && (
-              <p className="mt-2 text-center">
-                <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>
-              </p>
-            )}
-          </BarraAccion>
-        </>
-      )}
+          )}
+        </div>
 
-      {clienteId && (
-        <section aria-label="Historial de pagos" className="no-imprimir">
-          <Hoja className="sm:hidden">
-            <RenglonTitulo titulo="Historial de pagos" />
-            {pagos.length === 0 ? (
-              <p className="flex h-14 items-center pl-15 text-sm text-tinta-suave">Aún no hay pagos.</p>
-            ) : (
-              <ul>
-                {pagos.map((p) => (
-                  <Renglon
-                    key={p.id}
-                    margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
-                    titulo={
-                      <>
-                        Período {formatearFecha(p.fecha_vencimiento)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
-                      </>
-                    }
-                    detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
-                    monto={dinero(p.monto_pagado, m)}
-                  />
-                ))}
-              </ul>
-            )}
-          </Hoja>
-          <Tarjeta titulo="Historial de pagos" className="hidden sm:block">
-            {pagos.length === 0 ? (
-              <Vacio>Aún no hay pagos.</Vacio>
-            ) : (
-              <div className="overflow-x-auto">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Pagó el</th>
-                      <th>Período (pago)</th>
-                      <th className="text-right">Mora</th>
-                      <th className="text-right">Interés</th>
-                      <th className="text-right">Capital</th>
-                      <th className="text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        <div className="min-w-0 space-y-5">
+          {!clienteId && (
+            <p className="hidden rounded-2xl border-[1.5px] border-dashed border-linea p-8 text-center text-sm text-tinta-suave lg:block">
+              Elige un cliente para ver su listado de pago.
+            </p>
+          )}
+
+          {hayListado && (
+            <>
+              <section aria-label="Listado de pago" className="sm:rounded-2xl sm:border sm:border-papel-borde sm:bg-white sm:p-5 print:border-0 print:p-0">
+                <h2 className="mb-4 hidden font-display text-lg font-bold sm:block print:block">Listado de pago</h2>
+                <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
+                {/* Escritorio: la acción va junto al total; en celular está en la barra inferior. */}
+                <div className="no-imprimir mt-5 hidden items-center justify-end gap-4 border-t border-papel-borde pt-4 lg:flex">
+                  {!esMasAntiguo && <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>}
+                  <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo}>
+                    Registrar pago total de {dinero(ec.total, m)}
+                  </Boton>
+                </div>
+              </section>
+              <BarraAccion className="lg:hidden">
+                <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo} className="w-full">
+                  Registrar pago total de {dinero(ec.total, m)}
+                </Boton>
+                {!esMasAntiguo && (
+                  <p className="mt-2 text-center">
+                    <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>
+                  </p>
+                )}
+              </BarraAccion>
+            </>
+          )}
+
+          {clienteId && (
+            <section aria-label="Historial de pagos" className="no-imprimir">
+              <Hoja className="sm:hidden">
+                <RenglonTitulo titulo="Historial de pagos" />
+                {pagos.length === 0 ? (
+                  <p className="flex h-14 items-center pl-15 text-sm text-tinta-suave">Aún no hay pagos.</p>
+                ) : (
+                  <ul>
                     {pagos.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          {formatearFecha(p.fecha_efectiva_pago)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
-                        </td>
-                        <td>{formatearFecha(p.fecha_vencimiento)}</td>
-                        <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
-                        <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
-                        <td className="text-right">{dinero(p.capital, m)}</td>
-                        <td className="text-right font-bold">{dinero(p.monto_pagado, m)}</td>
-                      </tr>
+                      <Renglon
+                        key={p.id}
+                        margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
+                        titulo={
+                          <>
+                            Período {formatearFecha(p.fecha_vencimiento)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
+                          </>
+                        }
+                        detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
+                        monto={dinero(p.monto_pagado, m)}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Tarjeta>
-        </section>
-      )}
+                  </ul>
+                )}
+              </Hoja>
+              <Tarjeta titulo="Historial de pagos" className="hidden sm:block">
+                {pagos.length === 0 ? (
+                  <Vacio>Aún no hay pagos.</Vacio>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Pagó el</th>
+                          <th>Período (pago)</th>
+                          <th className="text-right">Mora</th>
+                          <th className="text-right">Interés</th>
+                          <th className="text-right">Capital</th>
+                          <th className="text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagos.map((p) => (
+                          <tr key={p.id}>
+                            <td>
+                              {formatearFecha(p.fecha_efectiva_pago)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
+                            </td>
+                            <td>{formatearFecha(p.fecha_vencimiento)}</td>
+                            <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
+                            <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
+                            <td className="text-right">{dinero(p.capital, m)}</td>
+                            <td className="text-right font-bold">{dinero(p.monto_pagado, m)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Tarjeta>
+            </section>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

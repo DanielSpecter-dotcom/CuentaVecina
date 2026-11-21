@@ -276,10 +276,13 @@ export function Stepper({ etiqueta, valor, onChange, min = 1, ...control }: { et
   )
 }
 
-/** Barra inferior fija con la acción principal; en móvil queda encima de la navegación inferior. */
-export function BarraAccion({ children }: { children: ReactNode }) {
+/** Barra inferior fija con la acción principal; en móvil queda encima de la navegación inferior.
+ *  `className` permite ocultarla en escritorio (p. ej. "lg:hidden"). */
+export function BarraAccion({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className="no-imprimir sticky bottom-(--alto-nav) z-10 -mx-4 border-t border-papel-borde bg-papel px-4 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] [:root:has(.nav-inferior)_&]:pb-3">
+    <div
+      className={`no-imprimir sticky bottom-(--alto-nav) z-10 -mx-4 border-t border-papel-borde bg-papel px-4 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] [:root:has(.nav-inferior)_&]:pb-3 ${className}`}
+    >
       {children}
     </div>
   )
