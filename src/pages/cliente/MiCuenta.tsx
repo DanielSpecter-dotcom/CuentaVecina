@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
+import { Condiciones, Hoja, MargenFecha, MontoGrande, Renglon, Sticker } from '../../components/cuaderno'
 import { Cronograma } from '../../components/Cronograma'
-import { EstadoCuentaVista } from '../../components/EstadoCuentaVista'
-import { Alerta, Dato, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
+import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components/EstadoCuentaVista'
+import { Alerta, Etiqueta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { describirTasa, moneda as aMoneda } from '../../lib/codigos'
-import { formatearFecha, hoyLima } from '../../lib/fechas'
+import { moneda as aMoneda } from '../../lib/codigos'
+import { diffDias, formatearFecha, hoyLima } from '../../lib/fechas'
 import { dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Cuota, EstadoCuenta, Pago, PeriodoPendiente, Venta } from '../../types'
+
+const diaSemana = (fecha: string) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', weekday: 'long' }).format(new Date(`${fecha}T00:00:00Z`))
 
 export default function MiCuenta() {
   const { perfil, tienda } = useAuth()
@@ -19,6 +22,9 @@ export default function MiCuenta() {
   const [pagos, setPagos] = useState<Pago[]>([])
   const [deuda, setDeuda] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Solo interfaz: cronograma desplegado y pestaña activa.
+  const [cronogramaAbierto, setCronogramaAbierto] = useState<string | null>(null)
+  const [pestana, setPestana] = useState<'compras' | 'pagos'>('compras')
 
   useEffect(() => {
     const id = perfil?.cliente_id
@@ -57,137 +63,216 @@ export default function MiCuenta() {
   }, [perfil?.cliente_id])
 
   if (error) return <Alerta>{error}</Alerta>
-  if (!cliente) return <p role="status" className="text-stone-600">Cargando…</p>
+  if (!cliente) return <p role="status" className="text-tinta-suave">Cargando…</p>
   const m = aMoneda(cliente.moneda)
   const ventasCuotas = ventas.filter((v) => v.modalidad_pago)
+  const faltan = ec ? diffDias(hoyLima(), ec.fechaPago) : 0
+
+  // Pestañas accesibles: flechas izquierda/derecha cambian de pestaña.
+  const teclasPestana = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    const otra = pestana === 'compras' ? 'pagos' : 'compras'
+    setPestana(otra)
+    document.getElementById(`pestana-${otra}`)?.focus()
+  }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Hola, {cliente.nombre.split(' ')[0]}</h1>
-        <p className="text-sm text-stone-600">Tu cuenta en {tienda?.nombre_comercial}</p>
-      </div>
+    <div className="space-y-6">
+      <header className="margen -mx-4 py-2 pr-4 pl-15">
+        <h1 className="font-display text-3xl font-extrabold">Hola, {cliente.nombre.split(' ')[0]}</h1>
+        <p className="text-sm text-tinta-suave">Tu cuenta en {tienda?.nombre_comercial}</p>
+      </header>
 
-      <Tarjeta>
-        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
-          <Dato etiqueta="Deuda vigente (capital)" valor={dinero(deuda, m)} destacado />
-          <Dato etiqueta="Límite de crédito" valor={dinero(cliente.limite_credito, m)} />
-          <Dato etiqueta="Tasa pactada" valor={describirTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion)} />
-          <Dato
-            etiqueta="Tasa moratoria"
-            valor={describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
-          />
-          <Dato etiqueta="Corte / pago" valor={`día ${cliente.dia_corte} / día ${cliente.dia_pago}`} />
-        </dl>
-      </Tarjeta>
-
-      <Tarjeta titulo="Próximo pago">
-        {ec ? <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} /> : <Vacio>No tienes pagos pendientes.</Vacio>}
-        {periodos.length > 1 && (
-          <p className="mt-3 text-xs text-stone-600">
-            Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
-          </p>
+      <section aria-label="Próximo pago" className="flex flex-col gap-2">
+        {ec ? (
+          <>
+            <p className="text-sm text-tinta-suave">Tu próximo pago es</p>
+            <MontoGrande>{dinero(ec.total, m)}</MontoGrande>
+            <p>
+              hasta el{' '}
+              <strong>
+                {diaSemana(ec.fechaPago)} {formatearFecha(ec.fechaPago)}
+              </strong>
+            </p>
+            {ec.diasMora > 0 ? (
+              <Sticker className="bg-vencido text-white">vencido hace {ec.diasMora} días</Sticker>
+            ) : faltan <= 0 ? (
+              <Sticker>vence hoy</Sticker>
+            ) : (
+              <Sticker>{faltan === 1 ? 'falta 1 día' : `faltan ${faltan} días`}</Sticker>
+            )}
+          </>
+        ) : (
+          <p className="font-display text-2xl font-extrabold">No tienes pagos pendientes</p>
         )}
-      </Tarjeta>
+      </section>
 
-      {ventasCuotas.length > 0 && (
-        <Tarjeta titulo="Compras en cuotas">
-          <div className="space-y-6">
-            {ventasCuotas.map((v) => (
-              <div key={v.id}>
-                <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                  <span className="font-medium">{v.productos?.nombre}</span>
-                  <span className="text-stone-600">
-                    comprado el {formatearFecha(v.fecha_compra)} · {v.num_cuotas} cuotas de {dinero(v.valor_cuota, m)}
-                  </span>
-                  <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
-                </div>
-                <Cronograma
-                  moneda={m}
-                  filas={cuotas
-                    .filter((q) => q.venta_id === v.id)
-                    .map((q) => ({
-                      numero: q.numero_cuota,
-                      fechaVencimiento: q.fecha_vencimiento,
-                      saldoInicial: q.saldo_inicial,
-                      interes: q.interes,
-                      amortizacion: q.amortizacion,
-                      cuota: q.cuota,
-                      saldoFinal: q.saldo_final,
-                      estado: q.estado_pago,
-                    }))}
-                />
-              </div>
-            ))}
+      <Condiciones cliente={cliente} deuda={deuda} />
+
+      {ec && (
+        <section className="space-y-3">
+          <HojaEstadoCuenta ec={ec} className="sm:hidden" titulo="Lo que entra en este pago" subtitulo={`Corte ${formatearFecha(ec.fechaCorte)}`} />
+          <div className="sm:hidden">
+            <Prelacion ec={ec} />
           </div>
-        </Tarjeta>
+          <div className="hidden rounded-2xl border border-papel-borde bg-white p-5 sm:block">
+            <h2 className="mb-4 font-display text-lg font-bold">Lo que entra en este pago</h2>
+            <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
+          </div>
+          {periodos.length > 1 && (
+            <p className="text-xs text-tinta-suave">
+              Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
+            </p>
+          )}
+        </section>
       )}
 
-      <Tarjeta titulo="Mis compras">
-        {ventas.length === 0 ? (
-          <Vacio>Aún no tienes compras registradas.</Vacio>
-        ) : (
-          <div className="overflow-x-auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Producto</th>
-                <th>Forma de pago</th>
-                <th className="text-right">Capital</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ventas.map((v) => (
-                <tr key={v.id}>
-                  <td>{formatearFecha(v.fecha_compra)}</td>
-                  <td>
-                    {v.productos?.nombre} &times; {v.cantidad}
-                  </td>
-                  <td>{v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`}</td>
-                  <td className="text-right">{dinero(v.monto_capital, m)}</td>
-                  <td>
+      {ventasCuotas.length > 0 && (
+        <section aria-labelledby="titulo-cuotas" className="space-y-3">
+          <h2 id="titulo-cuotas" className="text-xl font-bold">
+            Compras en cuotas
+          </h2>
+          <ul className="space-y-3">
+            {ventasCuotas.map((v) => {
+              const deLaVenta = cuotas.filter((q) => q.venta_id === v.id)
+              const actual = deLaVenta.find((q) => q.estado_pago === 'pendiente')?.numero_cuota
+              const abierto = cronogramaAbierto === v.id
+              return (
+                <li key={v.id} className="rounded-2xl border border-papel-borde bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold">{v.productos?.nombre}</span>
                     <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </Tarjeta>
+                  </div>
+                  <ol aria-label="Cuotas" className="my-3 flex items-center overflow-x-auto py-1">
+                    {deLaVenta.map((q, i) => {
+                      const pagada = q.estado_pago === 'pagado'
+                      const esActual = q.numero_cuota === actual
+                      return (
+                        <li key={q.id} className="flex shrink-0 items-center">
+                          {i > 0 && <span aria-hidden="true" className={`h-0.5 w-4 ${pagada || esActual ? 'bg-tinta' : 'bg-linea'}`} />}
+                          <span
+                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                              pagada ? 'bg-tinta text-resaltador' : esActual ? 'border-2 border-tinta bg-resaltador text-tinta' : 'border-[1.5px] border-linea bg-white text-tinta-suave'
+                            }`}
+                          >
+                            <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
+                            <span className="sr-only">
+                              Cuota {q.numero_cuota}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
+                            </span>
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                  <p className="text-sm text-tinta-suave">
+                    Cuotas de <span className="font-bold text-tinta">{dinero(v.valor_cuota, m)}</span> · comprada el {formatearFecha(v.fecha_compra)}
+                  </p>
+                  <button
+                    type="button"
+                    aria-expanded={abierto}
+                    onClick={() => setCronogramaAbierto(abierto ? null : v.id)}
+                    className="mt-1 min-h-11 text-sm font-bold underline underline-offset-4"
+                  >
+                    {abierto ? 'Ocultar cronograma' : 'Ver cronograma ›'}
+                  </button>
+                  {abierto && (
+                    <div className="mt-2">
+                      <Cronograma
+                        moneda={m}
+                        filas={deLaVenta.map((q) => ({
+                          numero: q.numero_cuota,
+                          fechaVencimiento: q.fecha_vencimiento,
+                          saldoInicial: q.saldo_inicial,
+                          interes: q.interes,
+                          amortizacion: q.amortizacion,
+                          cuota: q.cuota,
+                          saldoFinal: q.saldo_final,
+                          estado: q.estado_pago,
+                        }))}
+                      />
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
-      <Tarjeta titulo="Mis pagos">
-        {pagos.length === 0 ? (
-          <Vacio>Aún no tienes pagos.</Vacio>
-        ) : (
-          <div className="overflow-x-auto">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th className="text-right">Mora</th>
-                <th className="text-right">Interés</th>
-                <th className="text-right">Capital</th>
-                <th className="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagos.map((p) => (
-                <tr key={p.id}>
-                  <td>{formatearFecha(p.fecha_efectiva_pago)}</td>
-                  <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
-                  <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
-                  <td className="text-right">{dinero(p.capital, m)}</td>
-                  <td className="text-right font-medium">{dinero(p.monto_pagado, m)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </Tarjeta>
+      <section>
+        <div role="tablist" aria-label="Historial" className="grid grid-cols-2 gap-1 rounded-xl border-[1.5px] border-tinta p-1">
+          {(
+            [
+              ['compras', 'Mis compras'],
+              ['pagos', 'Mis pagos'],
+            ] as const
+          ).map(([id, texto]) => (
+            <button
+              key={id}
+              id={`pestana-${id}`}
+              role="tab"
+              type="button"
+              aria-selected={pestana === id}
+              aria-controls={`panel-${id}`}
+              tabIndex={pestana === id ? 0 : -1}
+              onClick={() => setPestana(id)}
+              onKeyDown={teclasPestana}
+              className={`min-h-11 rounded-lg font-bold ${pestana === id ? 'bg-tinta text-papel' : 'text-tinta'}`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+
+        <div id="panel-compras" role="tabpanel" aria-labelledby="pestana-compras" hidden={pestana !== 'compras'} className="mt-3">
+          {ventas.length === 0 ? (
+            <Vacio>Aún no tienes compras registradas.</Vacio>
+          ) : (
+            <Hoja>
+              <ul>
+                {ventas.map((v, i) => (
+                  <Renglon
+                    key={v.id}
+                    margen={<MargenFecha fecha={v.fecha_compra} repetida={i > 0 && ventas[i - 1].fecha_compra === v.fecha_compra} />}
+                    titulo={
+                      <>
+                        {v.productos?.nombre} &times; {v.cantidad}
+                      </>
+                    }
+                    detalle={
+                      <>
+                        {v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`} ·{' '}
+                        <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
+                      </>
+                    }
+                    monto={dinero(v.monto_capital, m)}
+                  />
+                ))}
+              </ul>
+            </Hoja>
+          )}
+        </div>
+
+        <div id="panel-pagos" role="tabpanel" aria-labelledby="pestana-pagos" hidden={pestana !== 'pagos'} className="mt-3">
+          {pagos.length === 0 ? (
+            <Vacio>Aún no tienes pagos.</Vacio>
+          ) : (
+            <Hoja>
+              <ul>
+                {pagos.map((p) => (
+                  <Renglon
+                    key={p.id}
+                    margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
+                    titulo={`Pago del ${formatearFecha(p.fecha_efectiva_pago)}`}
+                    detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
+                    monto={dinero(p.monto_pagado, m)}
+                  />
+                ))}
+              </ul>
+            </Hoja>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

@@ -123,10 +123,17 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
           </tfoot>
         </table>
       </div>
-      <p className="text-xs text-tinta-suave">
-        Imputación del pago (prelación): mora {dinero(ec.interesMoratorio, m)} → interés compensatorio {dinero(ec.interesCompensatorio, m)} →
-        capital {dinero(ec.capital, m)}.
-      </p>
+      <Prelacion ec={ec} />
     </div>
+  )
+}
+
+export function Prelacion({ ec }: { ec: EstadoCuenta }) {
+  const m = ec.moneda
+  return (
+    <p className="text-xs text-tinta-suave">
+      Imputación del pago (prelación): mora {dinero(ec.interesMoratorio, m)} → interés compensatorio {dinero(ec.interesCompensatorio, m)} →
+      capital {dinero(ec.capital, m)}.
+    </p>
   )
 }
