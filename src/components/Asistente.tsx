@@ -15,13 +15,28 @@ export function Asistente() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const caja = useRef<HTMLDivElement>(null)
+  const campo = useRef<HTMLInputElement>(null)
 
-  // En móvil se abre desde la navegación inferior (Layout dispara el evento).
+  // Se abre desde la cabecera (escritorio) o la navegación inferior (móvil): Layout dispara el evento.
   useEffect(() => {
     const abrir = () => setAbierto(true)
     window.addEventListener('abrir-asistente', abrir)
     return () => window.removeEventListener('abrir-asistente', abrir)
   }, [])
+
+  // Al abrir, el foco va a la pregunta; Escape cierra el panel.
+  useEffect(() => {
+    if (!abierto) return
+    // Al cerrar, el foco vuelve al botón que abrió el panel.
+    const anterior = document.activeElement as HTMLElement | null
+    campo.current?.focus()
+    const cerrar = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
+    window.addEventListener('keydown', cerrar)
+    return () => {
+      window.removeEventListener('keydown', cerrar)
+      anterior?.focus()
+    }
+  }, [abierto])
 
   // scrollTop y no scrollIntoView: este también desplaza ventanas/iframes padres y deja la vista en blanco.
   useEffect(() => {
@@ -80,6 +95,7 @@ export function Asistente() {
           </div>
           <form onSubmit={enviar} className="flex gap-2 border-t border-papel-borde p-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <input
+              ref={campo}
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               placeholder="Escribe tu pregunta"
@@ -93,13 +109,6 @@ export function Asistente() {
           </form>
         </section>
       )}
-      <button
-        onClick={() => setAbierto((v) => !v)}
-        className="min-h-12 rounded-full bg-tinta px-4 py-3 text-sm font-bold text-papel shadow-lg ring-2 ring-papel hover:bg-tinta/90 max-md:hidden"
-        aria-expanded={abierto}
-      >
-        <span aria-hidden="true">💬</span> {abierto ? 'Ocultar asistente' : 'Asistente'}
-      </button>
     </div>
   )
 }

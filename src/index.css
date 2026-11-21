@@ -17,6 +17,8 @@
   /* Cuaderno: tinta azul sobre papel, resaltador amarillo. */
   --color-tinta: #1e2a45;
   --color-tinta-suave: #4a5573;
+  /* Texto claro sobre fondo tinta (navegación inferior). */
+  --color-papel-tenue: #dfe4ef;
   --color-papel: #fbfaf6;
   --color-papel-borde: #e6e3da;
   --color-linea: #c9c5b8;

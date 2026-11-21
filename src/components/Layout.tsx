@@ -1,11 +1,11 @@
-import { Fragment, useState } from 'react'
+import { Fragment, Suspense, useState } from 'react'
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import type { Rol } from '../types'
 import { Asistente } from './Asistente'
 import { Avatar } from './cuaderno'
 import { Notificaciones } from './Notificaciones'
-import { Boton, Modal } from './ui'
+import { Boton, Cargando, Modal } from './ui'
 
 const MENU: Record<Rol, { a: string; texto: string }[]> = {
   admin_sistema: [
@@ -34,7 +34,7 @@ const INFERIOR: Record<Rol, { a: string; texto: string }[]> = {
   admin_sistema: [
     { a: '/sistema/tiendas', texto: 'Tiendas' },
     { a: '/sistema/solicitudes', texto: 'Solicitudes' },
-    { a: '/sistema/bcrp', texto: 'Tasas BCRP' },
+    { a: '/sistema/bcrp', texto: 'BCRP' },
     { a: '/sistema/administradores', texto: 'Admins' },
   ],
   cliente: [{ a: '/mi-cuenta', texto: 'Mi cuenta' }],
@@ -57,10 +57,10 @@ const NOMBRE_ROL: Record<Rol, string> = {
 const abrirAsistente = () => window.dispatchEvent(new CustomEvent('abrir-asistente'))
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-11 shrink-0 items-center rounded-full px-3.5 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-tinta hover:bg-papel-borde/60'}`
+  `inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-tinta hover:bg-papel-borde/60'}`
 
 const claseInferior = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-11 items-center justify-center rounded-full px-2.5 text-xs whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-[#dfe4ef]'}`
+  `inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-papel-tenue'}`
 
 export function Logo() {
   return (
@@ -75,7 +75,7 @@ export function Layout() {
   const { cargando, perfil, tienda, cerrarSesion } = useAuth()
   const { pathname } = useLocation()
   const [mas, setMas] = useState(false)
-  if (cargando) return <p className="p-6 text-sm text-tinta-suave" role="status">Cargando…</p>
+  if (cargando) return <Cargando />
   if (!perfil) return <Navigate to="/login" replace />
   const nombre = perfil.nombre ?? perfil.usuario ?? ''
   const rol = perfil.rol
@@ -90,7 +90,7 @@ export function Layout() {
         Saltar al contenido
       </a>
       <header className="no-imprimir sticky top-0 z-40 bg-papel md:border-b md:border-papel-borde">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-4">
           <span className="flex min-w-0 items-center gap-2 md:hidden">
             <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
             <span className="truncate font-display text-lg font-extrabold">{tienda?.nombre_comercial ?? 'CuentaVecina'}</span>
@@ -107,19 +107,26 @@ export function Layout() {
             <NavLink to="/ayuda" className={claseEnlace}>
               Ayuda
             </NavLink>
+            <button type="button" onClick={abrirAsistente} className={claseEnlace({ isActive: false })}>
+              Asistente
+            </button>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2 md:gap-3">
             <Notificaciones />
-            <div className="hidden min-w-0 text-right leading-tight lg:block">
+            <div className="hidden max-w-40 min-w-0 text-right leading-tight lg:block">
               <div className="truncate text-sm font-bold">{nombre}</div>
               <div className="truncate text-xs text-tinta-suave">{tienda ? tienda.nombre_comercial : NOMBRE_ROL[rol]}</div>
             </div>
-            <Boton variante="secundario" onClick={cerrarSesion} className="hidden shrink-0 px-4 md:inline-flex">
-              Cerrar sesión
-            </Boton>
+            {/* Envuelto: la clase inline-flex de Boton anula a "hidden" si se pasan juntas. */}
+            <span className="hidden shrink-0 md:block">
+              <Boton variante="secundario" onClick={cerrarSesion} className="px-4">
+                Cerrar sesión
+              </Boton>
+            </span>
             {/* Móvil: el avatar abre un menú (popover nativo: se cierra con Escape o tocando fuera). */}
-            <button type="button" popoverTarget="menu-usuario" aria-label={`Menú de ${nombre}`} className="rounded-full md:hidden">
+            <button type="button" popoverTarget="menu-usuario" className="rounded-full md:hidden">
               <Avatar nombre={nombre} />
+              <span className="sr-only">Menú de {nombre}</span>
             </button>
             <div
               id="menu-usuario"
@@ -142,7 +149,9 @@ export function Layout() {
         tabIndex={-1}
         className="mx-auto max-w-6xl px-4 pt-2 pb-[calc(var(--alto-nav)+1.5rem)] focus:outline-none md:pt-6 md:pb-20"
       >
-        <Outlet />
+        <Suspense fallback={<Cargando />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <nav aria-label="Principal" className="nav-inferior no-imprimir fixed inset-x-0 bottom-0 z-30 bg-tinta pb-[env(safe-area-inset-bottom)] md:hidden">
