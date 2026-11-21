@@ -1,6 +1,7 @@
 // Campana de notificaciones: muestra los avisos del usuario (nueva compra, pago recibido,
 // recordatorios, vencidos, resumen de cobranza) y se actualiza al instante con Supabase Realtime.
 // Desde aquí también se activan las notificaciones push del celular.
+import { AlarmClock, Bell, BellOff, BellRing, CircleAlert, CircleCheck, ClipboardList, Info, ShoppingBag, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -8,13 +9,23 @@ import { activarPush, desactivarPush, estadoPush, type EstadoPush } from '../lib
 import { mensajeError, supabase } from '../lib/supabase'
 import type { Notificacion } from '../types'
 
-const ICONO: Record<Notificacion['tipo'], string> = {
-  VENTA: '🛒',
-  PAGO: '✅',
-  RECORDATORIO: '⏰',
-  VENCIDO: '⚠️',
-  RESUMEN: '📋',
-  SISTEMA: 'ℹ️',
+// Ícono y color por tipo de aviso (Lucide).
+const ICONO: Record<Notificacion['tipo'], { icono: LucideIcon; color: string }> = {
+  VENTA: { icono: ShoppingBag, color: 'bg-cuota-suave text-tinta' },
+  PAGO: { icono: CircleCheck, color: 'bg-pagado-suave text-pagado' },
+  RECORDATORIO: { icono: AlarmClock, color: 'bg-resaltador-suave text-tinta' },
+  VENCIDO: { icono: CircleAlert, color: 'bg-vencido-suave text-vencido' },
+  RESUMEN: { icono: ClipboardList, color: 'bg-papel-borde text-tinta' },
+  SISTEMA: { icono: Info, color: 'bg-papel-borde text-tinta' },
+}
+
+function IconoAviso({ tipo }: { tipo: Notificacion['tipo'] }) {
+  const { icono: Icono, color } = ICONO[tipo] ?? ICONO.SISTEMA
+  return (
+    <span aria-hidden="true" className={`flex size-9 shrink-0 items-center justify-center rounded-full ${color}`}>
+      <Icono className="size-5" />
+    </span>
+  )
 }
 
 function hace(fecha: string): string {
@@ -121,9 +132,9 @@ export function Notificaciones() {
         onClick={() => setAbierta((v) => !v)}
         aria-label={sinLeer ? `Notificaciones: ${sinLeer} sin leer` : 'Notificaciones'}
         aria-expanded={abierta}
-        className="relative flex h-11 w-11 items-center justify-center rounded-xl text-xl hover:bg-papel-borde/60"
+        className="relative flex h-11 w-11 items-center justify-center rounded-xl text-tinta hover:bg-papel-borde/60"
       >
-        <span aria-hidden="true">🔔</span>
+        <Bell aria-hidden="true" className="size-6" strokeWidth={2.25} />
         {sinLeer > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-vencido px-1 text-center text-xs leading-5 font-bold text-white">
             {sinLeer > 9 ? '9+' : sinLeer}
@@ -153,9 +164,7 @@ export function Notificaciones() {
                   onClick={() => abrir(n)}
                   className={`flex min-h-14 w-full gap-3 border-b border-papel-borde px-4 py-3 text-left hover:bg-papel-borde/40 ${n.leida ? '' : 'bg-resaltador-suave'}`}
                 >
-                  <span aria-hidden="true" className="text-lg">
-                    {ICONO[n.tipo]}
-                  </span>
+                  <IconoAviso tipo={n.tipo} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className={`text-sm ${n.leida ? 'font-medium' : 'font-bold'}`}>{n.titulo}</span>
@@ -174,9 +183,10 @@ export function Notificaciones() {
             {(push === 'activo' || push === 'inactivo') && (
               <button
                 onClick={cambiarPush}
-                className="min-h-11 w-full rounded-xl border-[1.5px] border-tinta bg-white px-3 py-2 text-sm font-bold text-tinta hover:bg-papel-borde/40"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-tinta bg-white px-3 py-2 text-sm font-bold text-tinta hover:bg-papel-borde/40"
               >
-                {push === 'activo' ? '🔕 Dejar de recibir avisos en este dispositivo' : '📲 Recibir avisos en este dispositivo'}
+                {push === 'activo' ? <BellOff aria-hidden="true" className="size-4 shrink-0" /> : <BellRing aria-hidden="true" className="size-4 shrink-0" />}
+                {push === 'activo' ? 'Dejar de recibir avisos en este dispositivo' : 'Recibir avisos en este dispositivo'}
               </button>
             )}
             {error && <p className="font-bold text-vencido">{error}</p>}
@@ -191,9 +201,7 @@ export function Notificaciones() {
           role="status"
           className="fixed top-20 right-4 z-50 flex max-w-sm gap-3 rounded-2xl border border-papel-borde bg-white p-4 text-left shadow-xl max-sm:left-4"
         >
-          <span aria-hidden="true" className="text-xl">
-            {ICONO[nueva.tipo]}
-          </span>
+          <IconoAviso tipo={nueva.tipo} />
           <span>
             <span className="block text-sm font-bold">{nueva.titulo}</span>
             <span className="block text-xs text-tinta-suave">{nueva.cuerpo}</span>

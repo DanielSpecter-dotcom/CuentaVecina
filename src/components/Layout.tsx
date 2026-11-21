@@ -1,4 +1,5 @@
-import { Fragment, Suspense, useState } from 'react'
+import { CircleHelp, Ellipsis, HandCoins, House, Inbox, Landmark, LogOut, MessageCircle, Package, Plus, Store, UserCog, Users, Wallet, type LucideIcon } from 'lucide-react'
+import { Fragment, Suspense, useState, type ReactNode } from 'react'
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import type { Rol } from '../types'
@@ -24,27 +25,29 @@ const MENU: Record<Rol, { a: string; texto: string }[]> = {
   cliente: [{ a: '/mi-cuenta', texto: 'Mi cuenta' }],
 }
 
+type Item = { a: string; texto: string; icono: LucideIcon }
+
 /** Navegación inferior (móvil): accesos directos y lo que va en la hoja "Más". */
-const INFERIOR: Record<Rol, { a: string; texto: string }[]> = {
+const INFERIOR: Record<Rol, Item[]> = {
   admin_tienda: [
-    { a: '/tienda', texto: 'Inicio' },
-    { a: '/tienda/cobranza', texto: 'Cobranza' },
-    { a: '/tienda/clientes', texto: 'Clientes' },
+    { a: '/tienda', texto: 'Inicio', icono: House },
+    { a: '/tienda/cobranza', texto: 'Cobranza', icono: HandCoins },
+    { a: '/tienda/clientes', texto: 'Clientes', icono: Users },
   ],
   admin_sistema: [
-    { a: '/sistema/tiendas', texto: 'Tiendas' },
-    { a: '/sistema/solicitudes', texto: 'Solicitudes' },
-    { a: '/sistema/bcrp', texto: 'BCRP' },
-    { a: '/sistema/administradores', texto: 'Admins' },
+    { a: '/sistema/tiendas', texto: 'Tiendas', icono: Store },
+    { a: '/sistema/solicitudes', texto: 'Solicitudes', icono: Inbox },
+    { a: '/sistema/bcrp', texto: 'BCRP', icono: Landmark },
+    { a: '/sistema/administradores', texto: 'Admins', icono: UserCog },
   ],
-  cliente: [{ a: '/mi-cuenta', texto: 'Mi cuenta' }],
+  cliente: [{ a: '/mi-cuenta', texto: 'Mi cuenta', icono: Wallet }],
 }
-const MAS: Record<Rol, { a: string; texto: string }[]> = {
+const MAS: Record<Rol, Item[]> = {
   admin_tienda: [
-    { a: '/tienda/productos', texto: 'Productos' },
-    { a: '/ayuda', texto: 'Ayuda' },
+    { a: '/tienda/productos', texto: 'Productos', icono: Package },
+    { a: '/ayuda', texto: 'Ayuda', icono: CircleHelp },
   ],
-  admin_sistema: [{ a: '/ayuda', texto: 'Ayuda' }],
+  admin_sistema: [{ a: '/ayuda', texto: 'Ayuda', icono: CircleHelp }],
   cliente: [],
 }
 
@@ -59,8 +62,19 @@ const abrirAsistente = () => window.dispatchEvent(new CustomEvent('abrir-asisten
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-11 shrink-0 items-center rounded-full px-2.5 text-sm whitespace-nowrap lg:px-3 ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-tinta hover:bg-papel-borde/60'}`
 
-const claseInferior = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-papel-tenue'}`
+const claseInferior = 'flex min-w-14 flex-col items-center gap-0.5 px-1 text-[13px] leading-tight whitespace-nowrap'
+
+/** Ícono en una pastilla (resaltada si está activo) con la etiqueta debajo. */
+function ItemInferior({ icono: Icono, texto, activo }: { icono: LucideIcon; texto: ReactNode; activo: boolean }) {
+  return (
+    <>
+      <span className={`flex h-8 w-14 items-center justify-center rounded-full ${activo ? 'bg-resaltador text-tinta' : 'text-papel-tenue'}`}>
+        <Icono aria-hidden="true" className="size-5" strokeWidth={activo ? 2.5 : 2} />
+      </span>
+      <span className={activo ? 'font-bold text-papel' : 'text-papel-tenue'}>{texto}</span>
+    </>
+  )
+}
 
 export function Logo() {
   return (
@@ -163,16 +177,16 @@ export function Layout() {
                 <li>
                   <NavLink
                     to="/tienda/venta"
-                    className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full border-4 border-tinta bg-resaltador font-display text-3xl font-extrabold text-tinta"
+                    className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full border-4 border-tinta bg-resaltador text-tinta"
                   >
-                    <span aria-hidden="true">+</span>
+                    <Plus aria-hidden="true" className="size-7" strokeWidth={3} />
                     <span className="sr-only">Nueva venta</span>
                   </NavLink>
                 </li>
               )}
               <li>
                 <NavLink to={m.a} end={m.a === '/tienda'} className={claseInferior}>
-                  {m.texto}
+                  {({ isActive }) => <ItemInferior icono={m.icono} texto={m.texto} activo={isActive} />}
                 </NavLink>
               </li>
             </Fragment>
@@ -180,20 +194,20 @@ export function Layout() {
           {rol === 'cliente' ? (
             <>
               <li>
-                <button type="button" onClick={abrirAsistente} className={claseInferior({ isActive: false })}>
-                  Asistente
+                <button type="button" onClick={abrirAsistente} className={claseInferior}>
+                  <ItemInferior icono={MessageCircle} texto="Asistente" activo={false} />
                 </button>
               </li>
               <li>
                 <NavLink to="/ayuda" className={claseInferior}>
-                  Ayuda
+                  {({ isActive }) => <ItemInferior icono={CircleHelp} texto="Ayuda" activo={isActive} />}
                 </NavLink>
               </li>
             </>
           ) : (
             <li>
-              <button type="button" onClick={() => setMas(true)} aria-haspopup="dialog" className={claseInferior({ isActive: enMas })}>
-                Más
+              <button type="button" onClick={() => setMas(true)} aria-haspopup="dialog" className={claseInferior}>
+                <ItemInferior icono={Ellipsis} texto="Más" activo={enMas} />
               </button>
             </li>
           )}
@@ -204,7 +218,8 @@ export function Layout() {
         <ul className="-my-2 divide-y divide-papel-borde">
           {MAS[rol].map((m) => (
             <li key={m.a}>
-              <NavLink to={m.a} onClick={() => setMas(false)} className="flex min-h-14 items-center text-lg font-bold aria-[current=page]:text-tinta aria-[current=page]:underline">
+              <NavLink to={m.a} onClick={() => setMas(false)} className="flex min-h-14 items-center gap-3 text-lg font-bold aria-[current=page]:text-tinta aria-[current=page]:underline">
+                <m.icono aria-hidden="true" className="size-5" />
                 {m.texto}
               </NavLink>
             </li>
@@ -216,13 +231,15 @@ export function Layout() {
                 setMas(false)
                 abrirAsistente()
               }}
-              className="flex min-h-14 w-full items-center text-lg font-bold"
+              className="flex min-h-14 w-full items-center gap-3 text-lg font-bold"
             >
+              <MessageCircle aria-hidden="true" className="size-5" />
               Asistente
             </button>
           </li>
           <li>
-            <button type="button" onClick={cerrarSesion} className="flex min-h-14 w-full items-center text-lg font-bold text-vencido">
+            <button type="button" onClick={cerrarSesion} className="flex min-h-14 w-full items-center gap-3 text-lg font-bold text-vencido">
+              <LogOut aria-hidden="true" className="size-5" />
               Cerrar sesión
             </button>
           </li>

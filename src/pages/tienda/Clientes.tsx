@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { CamposTasa, type ValorTasa } from '../../components/CamposTasa'
 import { Avatar, Paso, Segmentado } from '../../components/cuaderno'
@@ -177,7 +178,8 @@ export default function Clientes() {
       </div>
     ) : (
       <button className={`${accion} font-bold underline`} aria-label={`Crear usuario para ${c.nombre}`} onClick={() => setCuenta({ cliente: c, password: '' })}>
-        + Crear usuario
+        <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+        Crear usuario
       </button>
     )
 
@@ -196,7 +198,8 @@ export default function Clientes() {
           className="w-full min-w-0 sm:flex-1"
         />
         <Boton onClick={() => setForm({ ...vacio })} className="w-full sm:w-auto">
-          + Nuevo cliente
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Nuevo cliente
         </Boton>
       </div>
       {error && !form && <Alerta>{error}</Alerta>}

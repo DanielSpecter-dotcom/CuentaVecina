@@ -1,3 +1,4 @@
+import { CircleHelp } from 'lucide-react'
 import { Hoja, RenglonTitulo } from '../components/cuaderno'
 import { Tarjeta } from '../components/ui'
 
@@ -54,7 +55,7 @@ const RUTA = [
       'Cobranza → elegir el período y "Registrar pago total".',
     ],
   },
-  { rol: 'Cliente', pasos: ['Entra con su DNI: ve sus compras, cuotas y pagos, y en la campana 🔔 los avisos de compra y de pago.'] },
+  { rol: 'Cliente', pasos: ['Entra con su DNI: ve sus compras, cuotas y pagos, y en la campana de avisos, las compras y pagos registrados.'] },
 ]
 
 const PREGUNTAS_AVISOS = [
@@ -64,7 +65,7 @@ const PREGUNTAS_AVISOS = [
   },
   {
     p: '¿Cómo recibo los avisos en el celular?',
-    r: 'Toca la campana 🔔 y luego "Recibir avisos en este dispositivo", y acepta el permiso. En iPhone primero instala la app: Compartir → Agregar a pantalla de inicio.',
+    r: 'Toca la campana de avisos (arriba a la derecha) y luego "Recibir avisos en este dispositivo", y acepta el permiso. En iPhone primero instala la app: Compartir → Agregar a pantalla de inicio.',
   },
   {
     p: '¿Cómo instalo la app?',
@@ -123,7 +124,8 @@ export default function Ayuda() {
       </section>
 
       <p className="text-sm text-tinta-suave">
-        En cada formulario, el ícono <span className="rounded-full bg-papel-borde px-1.5 text-xs font-bold text-tinta">?</span> junto a cada campo
+        En cada formulario, el ícono{' '}
+        <CircleHelp aria-label="de ayuda" className="inline size-4 align-text-bottom" /> junto a cada campo
         explica qué ingresar.
       </p>
 

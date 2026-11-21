@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
 import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
@@ -111,7 +112,8 @@ export default function Tiendas() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Tiendas</h1>
         <Boton onClick={() => setEdicion({ ...tiendaVacia })} className="max-sm:w-full">
-          + Alta de tienda
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Alta de tienda
         </Boton>
       </div>
       {error && !edicion && !nuevoAdmin && !reset && <Alerta>{error}</Alerta>}
@@ -160,7 +162,8 @@ export default function Tiendas() {
                       aria-label={`Crear administrador para ${t.nombre_comercial}`}
                       onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
                     >
-                      + Crear administrador
+                      <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+                      Crear administrador
                     </button>
                   </div>
                   <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
@@ -227,7 +230,8 @@ export default function Tiendas() {
                             aria-label={`Crear administrador para ${t.nombre_comercial}`}
                             onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
                           >
-                            + Crear administrador
+                            <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+                            Crear administrador
                           </button>
                         </td>
                         <td>{t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}</td>

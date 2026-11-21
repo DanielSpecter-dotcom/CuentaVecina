@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Hoja, MargenFecha, MontoGrande, Renglon, RenglonTitulo, RenglonTotal, SelloVencido } from '../../components/cuaderno'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
@@ -129,9 +130,9 @@ export default function Inicio() {
               </p>
               <Link
                 to={`/tienda/cobranza?cliente=${masAntigua.cliente.id}&fecha=${masAntigua.fechaPago}`}
-                className="inline-flex min-h-11 items-center font-bold text-vencido underline underline-offset-4"
+                className="inline-flex min-h-11 items-center gap-0.5 font-bold text-vencido underline underline-offset-4"
               >
-                Cobrar ›
+                Cobrar <ChevronRight aria-hidden="true" className="size-4" strokeWidth={2.5} />
               </Link>
             </div>
           </SelloVencido>

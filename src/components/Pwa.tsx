@@ -1,6 +1,7 @@
 // PWA: registra el service worker, avisa cuando hay una versión nueva
 // y ofrece "Instalar app" (Android/Chrome/Edge) o explica cómo hacerlo en iPhone.
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 interface EventoInstalar extends Event {
@@ -61,8 +62,8 @@ export function Pwa() {
         <button className="min-h-11 rounded-xl bg-resaltador px-4 font-bold text-tinta" onClick={() => updateServiceWorker(true)}>
           Actualizar
         </button>
-        <button className="h-11 w-11 shrink-0 rounded-xl text-xl text-papel/80 hover:bg-white/10" aria-label="Más tarde" onClick={() => setHayVersionNueva(false)}>
-          ×
+        <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-papel/80 hover:bg-white/10" aria-label="Más tarde" onClick={() => setHayVersionNueva(false)}>
+          <X aria-hidden="true" className="size-5" />
         </button>
       </div>
     )
@@ -88,8 +89,8 @@ export function Pwa() {
           </button>
         )}
       </div>
-      <button className="h-11 w-11 shrink-0 rounded-xl text-xl text-papel/80 hover:bg-white/10" aria-label="Cerrar" onClick={ocultar}>
-        ×
+      <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-papel/80 hover:bg-white/10" aria-label="Cerrar" onClick={ocultar}>
+        <X aria-hidden="true" className="size-5" />
       </button>
     </div>
   )

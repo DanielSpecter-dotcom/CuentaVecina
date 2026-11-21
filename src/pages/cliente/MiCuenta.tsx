@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
 import { Condiciones, Hoja, MargenFecha, MontoGrande, Renglon, Sticker } from '../../components/cuaderno'
 import { Cronograma } from '../../components/Cronograma'
 import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components/EstadoCuentaVista'
@@ -187,7 +188,7 @@ export default function MiCuenta() {
                                         : 'border-[1.5px] border-linea bg-white text-tinta-suave'
                                   }`}
                                 >
-                                  <span aria-hidden="true">{pagada ? '✓' : q.numero_cuota}</span>
+                                  <span aria-hidden="true">{pagada ? <Check className="size-4" strokeWidth={3} /> : q.numero_cuota}</span>
                                   <span className="sr-only">
                                     Cuota {q.numero_cuota}, vence el {formatearFecha(q.fecha_vencimiento)}: {pagada ? 'pagada' : esActual ? 'la que sigue' : 'pendiente'}
                                   </span>
@@ -210,9 +211,10 @@ export default function MiCuenta() {
                         type="button"
                         aria-expanded={abierto}
                         onClick={() => setCronogramaAbierto(abierto ? null : v.id)}
-                        className="mt-1 min-h-11 text-sm font-bold underline underline-offset-4"
+                        className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-bold underline underline-offset-4"
                       >
-                        {abierto ? 'Ocultar cronograma' : 'Ver cronograma ›'}
+                        {abierto ? 'Ocultar cronograma' : 'Ver cronograma'}
+                        <ChevronDown aria-hidden="true" className={`size-4 transition ${abierto ? 'rotate-180' : ''}`} strokeWidth={2.5} />
                       </button>
                       {abierto && (
                         <div className="mt-2">

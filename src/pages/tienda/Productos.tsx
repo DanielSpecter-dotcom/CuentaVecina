@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { Segmentado } from '../../components/cuaderno'
 import { Alerta, Boton, Campo, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
@@ -120,7 +121,8 @@ export default function Productos() {
           className="w-full min-w-0 sm:flex-1"
         />
         <Boton onClick={() => setForm({ ...vacio })} className="w-full sm:w-auto">
-          + Nuevo producto
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Nuevo producto
         </Boton>
       </div>
       {error && !form && <Alerta>{error}</Alerta>}

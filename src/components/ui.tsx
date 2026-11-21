@@ -2,6 +2,7 @@
 // <Campo ayuda="..."> muestra un botón "?" que despliega la explicación de cada campo
 // (requisito del enunciado: ayuda en cada campo de las ventanas de diálogo).
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react'
+import { CircleHelp, X } from 'lucide-react'
 import { cloneElement, isValidElement } from 'react'
 
 export function Campo({
@@ -42,11 +43,11 @@ export function Campo({
             aria-controls={`${id}-ayuda`}
             // El círculo mide 28 px; el pseudo-elemento amplía el área de toque a 44 px.
             className={`no-imprimir relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold transition after:absolute after:-inset-2 after:content-[''] ${
-              verAyuda ? 'bg-tinta text-resaltador' : 'bg-papel-borde text-tinta hover:bg-linea'
+              verAyuda ? 'bg-tinta text-resaltador' : 'text-tinta-suave hover:bg-papel-borde hover:text-tinta'
             }`}
             onClick={() => setVerAyuda((v) => !v)}
           >
-            ?
+            <CircleHelp aria-hidden="true" className="size-5" strokeWidth={2.25} />
           </button>
         )}
       </div>
@@ -160,10 +161,10 @@ export function Modal({ titulo, abierto, onCerrar, children, ancho = 'max-w-2xl'
               <button
                 type="button"
                 onClick={onCerrar}
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl text-tinta hover:bg-papel-borde/60"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-tinta hover:bg-papel-borde/60"
                 aria-label="Cerrar"
               >
-                &times;
+                <X aria-hidden="true" className="size-6" />
               </button>
             </div>
           </header>

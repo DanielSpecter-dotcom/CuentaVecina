@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { X } from 'lucide-react'
 import { invocar, mensajeError } from '../lib/supabase'
 import { Boton } from './ui'
 
@@ -72,8 +73,8 @@ export function Asistente() {
         >
           <header className="flex items-center justify-between bg-tinta px-4 py-2 text-papel">
             <h2 className="text-lg font-bold text-papel">Asistente</h2>
-            <button onClick={() => setAbierto(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-2xl text-papel hover:bg-white/10" aria-label="Cerrar asistente">
-              &times;
+            <button onClick={() => setAbierto(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-papel hover:bg-white/10" aria-label="Cerrar asistente">
+              <X aria-hidden="true" className="size-6" />
             </button>
           </header>
           <div ref={caja} className="flex-1 space-y-3 overflow-y-auto p-4 text-sm" aria-live="polite">

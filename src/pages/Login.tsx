@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Sello } from '../components/cuaderno'
@@ -90,11 +91,12 @@ export default function Login() {
             </Campo>
             <button
               type="button"
-              aria-pressed={verPassword}
               onClick={() => setVerPassword((v) => !v)}
-              className="absolute right-0.5 bottom-0.5 h-11 rounded-lg px-3 text-sm font-bold underline underline-offset-4 hover:bg-papel-borde/60"
+              className="absolute right-0.5 bottom-0.5 flex h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-bold hover:bg-papel-borde/60"
             >
-              Mostrar<span className="sr-only"> contraseña</span>
+              {verPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+              {verPassword ? 'Ocultar' : 'Mostrar'}
+              <span className="sr-only"> contraseña</span>
             </button>
           </div>
           <Boton type="submit" cargando={enviando} className="w-full">

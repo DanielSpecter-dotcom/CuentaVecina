@@ -1,6 +1,7 @@
 // "Primeros pasos": la ruta para poner en marcha (y probar en vivo) la app desde cero.
 // Cada paso se marca solo cuando ya existe el dato correspondiente en la base de datos.
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Rol } from '../types'
@@ -84,7 +85,7 @@ export function PrimerosPasos({ rol }: { rol: Extract<Rol, 'admin_sistema' | 'ad
                 p.hecho ? 'bg-tinta text-resaltador' : 'border-[1.5px] border-tinta bg-white text-tinta'
               }`}
             >
-              {p.hecho ? '✓' : i + 1}
+              {p.hecho ? <Check className="size-4" strokeWidth={3} /> : i + 1}
             </span>
           )
           return (

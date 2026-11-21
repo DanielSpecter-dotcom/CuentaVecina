@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { Plus } from 'lucide-react'
 import { Avatar } from '../../components/cuaderno'
 import { Alerta, Boton, Campo, Etiqueta, Modal, PieModal, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
@@ -73,7 +74,8 @@ export default function Administradores() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Administradores del sistema</h1>
         <Boton onClick={() => setNuevo({ nombre: '', usuario: '', password: '' })} className="max-sm:w-full">
-          + Nuevo administrador
+          <Plus aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.5} />
+          Nuevo administrador
         </Boton>
       </div>
       <p className="text-sm text-tinta-suave">Personas que administran la plataforma: dan de alta tiendas, aprueban solicitudes y cargan las tasas del BCRP.</p>
