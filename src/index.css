@@ -5,6 +5,7 @@
   --font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Bricolage Grotesque: aire de letrero pintado a mano de bodega, solo para títulos. */
   --font-display: "Bricolage Grotesque", var(--font-sans);
+  /* Marca: solo favicon e íconos. La interfaz usa la paleta del cuaderno. */
   --color-marca-50: #f0fdfa;
   --color-marca-100: #ccfbf1;
   --color-marca-200: #99f6e4;
@@ -13,44 +14,69 @@
   --color-marca-700: #0f766e;
   --color-marca-800: #115e59;
   --color-marca-900: #134e4a;
-  /* Renglón azul y margen rojo del cuaderno de fiados (firma visual de las pantallas de acceso). */
+  /* Cuaderno: tinta azul sobre papel, resaltador amarillo. */
+  --color-tinta: #1e2a45;
+  --color-tinta-suave: #4a5573;
+  --color-papel: #fbfaf6;
+  --color-papel-borde: #e6e3da;
+  --color-linea: #c9c5b8;
+  --color-resaltador: #f2d35b;
+  --color-resaltador-suave: #fdf6d8;
+  --color-vencido: #b42318;
+  --color-vencido-suave: #fbe3df;
+  --color-pagado: #1f5f3a;
+  --color-pagado-suave: #e3f1e8;
+  --color-cuota-suave: #dfe7f3;
+  /* Renglón azul y margen rojo del cuaderno de fiados. */
   --color-renglon: #c7d7ea;
   --color-margen: #e2a3a3;
 }
 
 @layer base {
+  /* Alto de la navegación inferior (solo móvil). BarraAccion y los avisos flotantes se apoyan encima. */
+  :root {
+    --alto-nav: 0px;
+  }
+  :root:has(.nav-inferior) {
+    --alto-nav: calc(4rem + env(safe-area-inset-bottom));
+  }
+  @media (width >= 48rem) {
+    :root:has(.nav-inferior) {
+      --alto-nav: 0px;
+    }
+  }
   body {
-    @apply bg-stone-50 text-stone-800 antialiased;
+    @apply bg-papel text-tinta antialiased;
   }
   h1,
   h2,
   h3 {
-    @apply font-display tracking-tight text-stone-900;
+    @apply font-display tracking-tight text-tinta;
   }
   /* Foco visible y consistente para teclado en todo control interactivo. */
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-marca-700;
+    @apply outline-2 outline-offset-2 outline-tinta;
   }
   /* 16px en móvil evita el zoom automático de iOS al enfocar un campo. */
   input,
   select,
   textarea {
-    @apply min-h-10 rounded-lg border border-stone-400 bg-white px-3 py-2 text-base text-stone-900 transition placeholder:text-stone-600 focus:border-marca-700 focus-visible:outline-marca-700 disabled:border-stone-300 disabled:bg-stone-100 disabled:text-stone-600 sm:text-sm;
+    @apply min-h-12 rounded-xl border-[1.5px] border-tinta bg-white px-3.5 py-2 text-base text-tinta transition placeholder:text-tinta-suave/70 focus:border-tinta focus:ring-2 focus:ring-resaltador focus-visible:outline-tinta disabled:border-linea disabled:bg-papel-borde/50 disabled:text-tinta-suave;
   }
   input[type="file"] {
-    @apply min-h-0 py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-marca-50 file:px-3 file:py-1 file:font-medium file:text-marca-800;
+    @apply min-h-0 py-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-papel-borde file:px-3 file:py-1 file:font-bold file:text-tinta;
   }
   input[aria-invalid="true"] {
-    @apply border-red-600;
+    @apply border-vencido;
   }
   table {
     @apply w-full text-sm tabular-nums;
   }
   th {
-    @apply border-b border-stone-200 px-3 py-2 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-stone-600 uppercase;
+    @apply border-b border-papel-borde px-3 py-2 text-left text-xs font-bold tracking-wide whitespace-nowrap text-tinta-suave uppercase;
   }
   td {
-    @apply border-b border-stone-100 px-3 py-2;
+    @apply border-b border-papel-borde/70 px-3 py-2;
   }
   /* Celular: celdas más compactas y la primera columna fija, para no perder de vista
      a qué fila pertenece lo que se ve al deslizar la tabla. Las filas con color
@@ -65,7 +91,7 @@
     }
     th:first-child,
     td:first-child {
-      @apply sticky left-0 z-1 shadow-[1px_0_0_var(--color-stone-200)];
+      @apply sticky left-0 z-1 shadow-[1px_0_0_var(--color-papel-borde)];
       background-color: inherit;
     }
     thead th:first-child {
@@ -74,11 +100,32 @@
   }
 }
 
+/* Hoja de cuaderno con renglones de 28 px (Login y Registro). */
 @utility cuaderno {
-  background-color: #fbfaf6;
+  background-color: var(--color-papel);
   background-image:
     linear-gradient(to right, transparent 2.75rem, var(--color-margen) 2.75rem, var(--color-margen) calc(2.75rem + 1px), transparent calc(2.75rem + 1px)),
     repeating-linear-gradient(to bottom, transparent 0 1.75rem, var(--color-renglon) 1.75rem calc(1.75rem + 1px));
+}
+
+/* Margen rojo del cuaderno a 44 px (sin renglones) */
+@utility margen {
+  background-image: linear-gradient(to right, transparent 2.75rem, var(--color-margen) 2.75rem, var(--color-margen) calc(2.75rem + 1px), transparent calc(2.75rem + 1px));
+}
+
+/* Hoja con margen y renglones de 56 px: cada fila de lista ocupa exactamente un renglón */
+@utility renglones {
+  background-color: var(--color-papel);
+  background-image:
+    linear-gradient(to right, transparent 2.75rem, var(--color-margen) 2.75rem, var(--color-margen) calc(2.75rem + 1px), transparent calc(2.75rem + 1px)),
+    repeating-linear-gradient(to bottom, transparent 0 3.4375rem, var(--color-renglon) 3.4375rem 3.5rem);
+}
+
+/* Subrayado de resaltador detrás de un monto */
+@utility resaltado {
+  background-image: linear-gradient(transparent 58%, var(--color-resaltador) 58%, var(--color-resaltador) 92%, transparent 92%);
+  padding-inline: 0.25rem;
+  margin-inline-start: -0.25rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
