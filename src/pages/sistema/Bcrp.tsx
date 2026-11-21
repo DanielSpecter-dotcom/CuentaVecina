@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { BarraAccion, Hoja, Renglon, Sello } from '../../components/cuaderno'
-import { Alerta, Boton, Campo, Tarjeta, Vacio } from '../../components/ui'
-import { formatearFecha } from '../../lib/fechas'
+import { Alerta, Boton, Campo, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
+import { formatearFecha, hoyLima } from '../../lib/fechas'
 import { mensajeError, supabase } from '../../lib/supabase'
 
 interface Parametro {
@@ -55,6 +55,10 @@ export default function Bcrp() {
   }
 
   const pct = (n: number) => `${Number(n).toFixed(4)} %`
+  // Vigente: hoy está entre "desde" (incluido) y "hasta" (día en que deja de regir).
+  const hoy = hoyLima()
+  const esVigente = (p: Parametro) => p.vigente_desde <= hoy && hoy < p.vigente_hasta
+  const hayVigente = lista.some(esVigente)
 
   return (
     <div className="space-y-4">
@@ -63,87 +67,106 @@ export default function Bcrp() {
         Las tasas pactadas con cada cliente se validan contra el registro vigente (convertidas a TEA). Si no hay un registro vigente, no se valida.
         Fuente: Banco Central de Reserva del Perú (publicación semestral).
       </Sello>
+      {lista.length > 0 && !hayVigente && (
+        <Alerta tipo="info">
+          <strong>No hay un registro vigente hoy.</strong> Mientras tanto, las tasas pactadas con los clientes no se validan contra los topes del BCRP:
+          registra el del semestre actual.
+        </Alerta>
+      )}
       {error && <Alerta>{error}</Alerta>}
 
-      <form onSubmit={guardar} className="space-y-4">
-        <h2 className="text-lg font-bold">Nuevo registro</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo etiqueta="TEA máx. soles (%)" ayuda="Tasa efectiva anual máxima en moneda nacional, en porcentaje (p. ej. 99.5).">
-            <input type="number" step="0.0000001" min="0" value={f.tasa_max_pen} onChange={set('tasa_max_pen')} required />
-          </Campo>
-          <Campo etiqueta="TEA máx. dólares (%)" ayuda="Tasa efectiva anual máxima en moneda extranjera, en porcentaje.">
-            <input type="number" step="0.0000001" min="0" value={f.tasa_max_usd} onChange={set('tasa_max_usd')} required />
-          </Campo>
-          <Campo etiqueta="Vigente desde" ayuda="Primer día de vigencia.">
-            <input type="date" value={f.vigente_desde} onChange={set('vigente_desde')} required />
-          </Campo>
-          <Campo etiqueta="Vigente hasta" ayuda="Día en que deja de regir (debe ser posterior a 'desde').">
-            <input type="date" value={f.vigente_hasta} onChange={set('vigente_hasta')} required />
-          </Campo>
-        </div>
-        <p className="text-xs text-tinta-suave">La tasa moratoria máxima se calcula como el 15 % de la compensatoria.</p>
-        <BarraAccion>
-          <Boton type="submit" cargando={guardando} className="w-full sm:w-auto">
-            Guardar
-          </Boton>
-        </BarraAccion>
-      </form>
+      {/* Escritorio: el formulario angosto a la izquierda y el historial a la derecha. */}
+      <div className="space-y-4 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:space-y-0">
+        <form onSubmit={guardar} className="space-y-4 lg:rounded-2xl lg:border lg:border-papel-borde lg:bg-white lg:p-5">
+          <h2 className="text-lg font-bold">Nuevo registro</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <Campo etiqueta="TEA máx. soles (%)" ayuda="Tasa efectiva anual máxima en moneda nacional, en porcentaje (p. ej. 99.5).">
+              <input type="number" step="0.0000001" min="0" value={f.tasa_max_pen} onChange={set('tasa_max_pen')} required />
+            </Campo>
+            <Campo etiqueta="TEA máx. dólares (%)" ayuda="Tasa efectiva anual máxima en moneda extranjera, en porcentaje.">
+              <input type="number" step="0.0000001" min="0" value={f.tasa_max_usd} onChange={set('tasa_max_usd')} required />
+            </Campo>
+            <Campo etiqueta="Vigente desde" ayuda="Primer día de vigencia.">
+              <input type="date" value={f.vigente_desde} onChange={set('vigente_desde')} required />
+            </Campo>
+            <Campo etiqueta="Vigente hasta" ayuda="Día en que deja de regir (debe ser posterior a 'desde').">
+              <input type="date" value={f.vigente_hasta} onChange={set('vigente_hasta')} required />
+            </Campo>
+          </div>
+          <p className="text-xs text-tinta-suave">La tasa moratoria máxima se calcula como el 15 % de la compensatoria.</p>
+          <BarraAccion className="lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0">
+            <Boton type="submit" cargando={guardando} className="w-full sm:w-auto lg:w-full">
+              Guardar
+            </Boton>
+          </BarraAccion>
+        </form>
 
-      <section aria-label="Historial" className="space-y-2">
-        <h2 className="text-lg font-bold">Historial</h2>
-        {lista.length === 0 ? (
-          <Vacio>Sin registros.</Vacio>
-        ) : (
-          <>
-            <Hoja className="sm:hidden">
-              <ul>
-                {lista.map((p) => (
-                  <Renglon
-                    key={p.id}
-                    margen={p.vigente_desde.slice(0, 4)}
-                    titulo={`${formatearFecha(p.vigente_desde)} – ${formatearFecha(p.vigente_hasta)}`}
-                    detalle={
-                      <>
-                        TEA máx. S/ {pct(p.tasa_max_pen)} · US$ {pct(p.tasa_max_usd)}
-                        <br />
-                        Moratoria máx. S/ {pct(p.tasa_max_mor_pen)} · US$ {pct(p.tasa_max_mor_usd)}
-                      </>
-                    }
-                  />
-                ))}
-              </ul>
-            </Hoja>
-            <Tarjeta className="hidden sm:block">
-              <div className="overflow-x-auto">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Vigencia</th>
-                      <th className="text-right">TEA máx. S/</th>
-                      <th className="text-right">TEA máx. US$</th>
-                      <th className="text-right">Moratoria máx. S/</th>
-                      <th className="text-right">Moratoria máx. US$</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lista.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          {formatearFecha(p.vigente_desde)} – {formatearFecha(p.vigente_hasta)}
-                        </td>
-                        <td className="text-right">{pct(p.tasa_max_pen)}</td>
-                        <td className="text-right">{pct(p.tasa_max_usd)}</td>
-                        <td className="text-right">{pct(p.tasa_max_mor_pen)}</td>
-                        <td className="text-right">{pct(p.tasa_max_mor_usd)}</td>
+        <section aria-label="Historial" className="min-w-0 space-y-2">
+          <h2 className="text-lg font-bold">Historial</h2>
+          {lista.length === 0 ? (
+            <Vacio>Sin registros.</Vacio>
+          ) : (
+            <>
+              <Hoja className="sm:hidden">
+                <ul>
+                  {lista.map((p) => (
+                    <Renglon
+                      key={p.id}
+                      margen={p.vigente_desde.slice(0, 4)}
+                      titulo={
+                        <>
+                          {formatearFecha(p.vigente_desde)} – {formatearFecha(p.vigente_hasta)} {esVigente(p) && <Etiqueta color="verde">vigente</Etiqueta>}
+                        </>
+                      }
+                      detalle={
+                        <>
+                          TEA máx. S/ {pct(p.tasa_max_pen)} · US$ {pct(p.tasa_max_usd)}
+                          <br />
+                          Moratoria máx. S/ {pct(p.tasa_max_mor_pen)} · US$ {pct(p.tasa_max_mor_usd)}
+                        </>
+                      }
+                    />
+                  ))}
+                </ul>
+              </Hoja>
+              <Tarjeta className="hidden sm:block">
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Vigencia</th>
+                        <th className="text-right">TEA máx.</th>
+                        <th className="text-right">Moratoria máx.</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Tarjeta>
-          </>
-        )}
-      </section>
+                    </thead>
+                    <tbody>
+                      {lista.map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <span className="whitespace-nowrap">
+                              {formatearFecha(p.vigente_desde)} – {formatearFecha(p.vigente_hasta)}
+                            </span>{' '}
+                            {esVigente(p) && <Etiqueta color="verde">vigente</Etiqueta>}
+                          </td>
+                          {/* Soles arriba y dólares abajo: cuatro tasas en dos columnas que entran al lado del formulario. */}
+                          <td className="text-right whitespace-nowrap">
+                            <div className="font-bold">S/ {pct(p.tasa_max_pen)}</div>
+                            <div className="text-xs text-tinta-suave">US$ {pct(p.tasa_max_usd)}</div>
+                          </td>
+                          <td className="text-right whitespace-nowrap">
+                            <div className="font-bold">S/ {pct(p.tasa_max_mor_pen)}</div>
+                            <div className="text-xs text-tinta-suave">US$ {pct(p.tasa_max_mor_usd)}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Tarjeta>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

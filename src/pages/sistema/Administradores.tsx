@@ -82,7 +82,7 @@ export default function Administradores() {
       {lista.length === 0 ? (
         <Vacio>Sin administradores.</Vacio>
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {lista.map((p) => (
             <li key={p.id} className={`rounded-2xl border border-papel-borde p-4 ${p.activo ? 'bg-white' : 'bg-papel-borde/40'}`}>
               <div className="flex items-center gap-3">

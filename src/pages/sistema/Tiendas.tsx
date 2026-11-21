@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
-import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Vacio } from '../../components/ui'
+import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
 import type { Perfil, Tienda } from '../../types'
@@ -94,6 +94,18 @@ export default function Tiendas() {
     }
   }
 
+  const editar = (t: Tienda) =>
+    setEdicion({
+      id: t.id,
+      nombre_comercial: t.nombre_comercial,
+      ruc: t.ruc,
+      giro: t.giro,
+      direccion: t.direccion,
+      telefono: t.telefono ?? '',
+      correo: t.correo ?? '',
+      hora_corte: t.hora_corte,
+    })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -108,74 +120,138 @@ export default function Tiendas() {
       {tiendas.length === 0 ? (
         <Vacio>No hay tiendas registradas.</Vacio>
       ) : (
-        <ul className="grid gap-3 lg:grid-cols-2">
-          {tiendas.map((t) => {
-            const suyos = admins.filter((a) => a.tienda_id === t.id)
-            return (
-              <li key={t.id} className={`flex flex-col rounded-2xl border border-papel-borde p-4 ${t.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-lg font-bold">{t.nombre_comercial}</h2>
-                    <p className="text-sm text-tinta-suave">{t.direccion}</p>
+        <>
+          {/* Celular y tablet: una ficha por tienda. */}
+          <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
+            {tiendas.map((t) => {
+              const suyos = admins.filter((a) => a.tienda_id === t.id)
+              return (
+                <li key={t.id} className={`flex flex-col rounded-2xl border border-papel-borde p-4 ${t.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold">{t.nombre_comercial}</h2>
+                      <p className="text-sm text-tinta-suave">{t.direccion}</p>
+                    </div>
+                    {t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}
                   </div>
-                  {t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}
-                </div>
-                <dl className="mt-3 grid grid-cols-3 gap-2.5 text-sm">
-                  <Dato etiqueta="RUC" valor={t.ruc} />
-                  <Dato etiqueta="Giro" valor={t.giro} />
-                  <Dato etiqueta="Alta" valor={formatearFecha(t.created_at)} />
-                </dl>
-                <div className="mt-3 border-t border-dashed border-papel-borde pt-2">
-                  <p className="text-xs text-tinta-suave">Administradores</p>
-                  <ul>
-                    {suyos.map((a) => (
-                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-x-3">
-                        <span className="font-bold">{a.usuario}</span>
-                        <button
-                          className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-                          aria-label={`Restablecer clave de ${a.usuario}`}
-                          onClick={() => setReset({ perfil: a, password: '' })}
-                        >
-                          Restablecer clave
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4"
-                    aria-label={`Crear administrador para ${t.nombre_comercial}`}
-                    onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
-                  >
-                    + Crear administrador
-                  </button>
-                </div>
-                <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
-                  <Boton
-                    variante="fantasma"
-                    aria-label={`Editar ${t.nombre_comercial}`}
-                    onClick={() =>
-                      setEdicion({
-                        id: t.id,
-                        nombre_comercial: t.nombre_comercial,
-                        ruc: t.ruc,
-                        giro: t.giro,
-                        direccion: t.direccion,
-                        telefono: t.telefono ?? '',
-                        correo: t.correo ?? '',
-                        hora_corte: t.hora_corte,
-                      })
-                    }
-                  >
-                    Editar
-                  </Boton>
-                  <Boton variante={t.estado ? 'secundario' : 'primario'} aria-label={`${t.estado ? 'Dar de baja' : 'Reactivar'} ${t.nombre_comercial}`} onClick={() => cambiarEstado(t)}>
-                    {t.estado ? 'Dar de baja' : 'Reactivar'}
-                  </Boton>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                  <dl className="mt-3 grid grid-cols-3 gap-2.5 text-sm">
+                    <Dato etiqueta="RUC" valor={t.ruc} />
+                    <Dato etiqueta="Giro" valor={t.giro} />
+                    <Dato etiqueta="Alta" valor={formatearFecha(t.created_at)} />
+                  </dl>
+                  <div className="mt-3 border-t border-dashed border-papel-borde pt-2">
+                    <p className="text-xs text-tinta-suave">Administradores</p>
+                    <ul>
+                      {suyos.map((a) => (
+                        <li key={a.id} className="flex flex-wrap items-center justify-between gap-x-3">
+                          <span className="font-bold">{a.usuario}</span>
+                          <button
+                            className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+                            aria-label={`Restablecer clave de ${a.usuario}`}
+                            onClick={() => setReset({ perfil: a, password: '' })}
+                          >
+                            Restablecer clave
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4"
+                      aria-label={`Crear administrador para ${t.nombre_comercial}`}
+                      onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
+                    >
+                      + Crear administrador
+                    </button>
+                  </div>
+                  <div className="mt-auto grid grid-cols-2 gap-2 pt-2">
+                    <Boton
+                      variante="fantasma"
+                      aria-label={`Editar ${t.nombre_comercial}`}
+                      onClick={() => editar(t)}
+                    >
+                      Editar
+                    </Boton>
+                    <Boton variante={t.estado ? 'secundario' : 'primario'} aria-label={`${t.estado ? 'Dar de baja' : 'Reactivar'} ${t.nombre_comercial}`} onClick={() => cambiarEstado(t)}>
+                      {t.estado ? 'Dar de baja' : 'Reactivar'}
+                    </Boton>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Escritorio: tabla compacta, más fácil de recorrer con muchas tiendas. */}
+          <Tarjeta className="hidden lg:block">
+            <div className="overflow-x-auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tienda</th>
+                    <th>RUC</th>
+                    <th>Giro</th>
+                    <th>Alta</th>
+                    <th>Administradores</th>
+                    <th>Estado</th>
+                    <th>
+                      <span className="sr-only">Acciones</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tiendas.map((t) => {
+                    const suyos = admins.filter((a) => a.tienda_id === t.id)
+                    return (
+                      <tr key={t.id} className={t.estado ? '' : 'bg-papel-borde/40'}>
+                        <td>
+                          <div className="font-bold">{t.nombre_comercial}</div>
+                          <div className="text-xs text-tinta-suave">{t.direccion}</div>
+                        </td>
+                        <td>{t.ruc}</td>
+                        <td>{t.giro}</td>
+                        <td>{formatearFecha(t.created_at)}</td>
+                        <td>
+                          {suyos.map((a) => (
+                            <div key={a.id} className="flex items-center gap-3 whitespace-nowrap">
+                              <span className="font-bold">{a.usuario}</span>
+                              <button
+                                className="inline-flex min-h-11 items-center text-xs underline underline-offset-4"
+                                aria-label={`Restablecer clave de ${a.usuario}`}
+                                onClick={() => setReset({ perfil: a, password: '' })}
+                              >
+                                Restablecer clave
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            className="inline-flex min-h-11 items-center text-xs font-bold whitespace-nowrap underline underline-offset-4"
+                            aria-label={`Crear administrador para ${t.nombre_comercial}`}
+                            onClick={() => setNuevoAdmin({ tienda: t, usuario: '', nombre: '', password: '' })}
+                          >
+                            + Crear administrador
+                          </button>
+                        </td>
+                        <td>{t.estado ? <Etiqueta color="verde">Activa</Etiqueta> : <Etiqueta color="rojo">De baja</Etiqueta>}</td>
+                        <td className="space-x-1 text-right whitespace-nowrap">
+                          <Boton variante="fantasma" className="px-3" aria-label={`Editar ${t.nombre_comercial}`} onClick={() => editar(t)}>
+                            Editar
+                          </Boton>
+                          <Boton
+                            variante={t.estado ? 'secundario' : 'primario'}
+                            className="px-4"
+                            aria-label={`${t.estado ? 'Dar de baja' : 'Reactivar'} ${t.nombre_comercial}`}
+                            onClick={() => cambiarEstado(t)}
+                          >
+                            {t.estado ? 'Dar de baja' : 'Reactivar'}
+                          </Boton>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Tarjeta>
+        </>
       )}
 
       <Modal titulo={edicion?.id ? 'Editar tienda' : 'Alta de tienda'} abierto={!!edicion} onCerrar={() => setEdicion(null)}>
