@@ -33,3 +33,4 @@ supabase/.branches
 !.env.example
 
 /documentacion
+/docs

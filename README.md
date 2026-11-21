@@ -22,16 +22,38 @@ SI642 Finanzas e Ingeniería Económica — UPC — Grupo 03.
 | `npm run build` | Compila (verifica tipos) a `dist/` |
 | `npm run lint` | Revisión de código (oxlint) |
 
-## 2. Primer administrador del sistema
+## 2. Primer administrador del sistema (desde la app)
 
-No se envían correos (el SMTP incluido en Supabase permite solo 2 por hora), así que el primer usuario se crea a mano:
-
-1. Supabase → **Authentication → Users → Add user → Create new user**: correo `admin@usuarios.cuentavecina.pe`, una contraseña, marcar **Auto Confirm User**.
-2. **SQL Editor**: `select public.fn_promover_admin_sistema('admin@usuarios.cuentavecina.pe', 'Tu nombre');`
-3. Iniciar sesión en la app con usuario `admin`.
+Con la base de datos vacía, la pantalla de inicio de sesión muestra **"Primera vez aquí → Configurar CuentaVecina"**:
+ahí se crea el administrador del sistema y se entra directo. Esa pantalla se cierra para siempre en cuanto existe
+un administrador (lo valida la Edge Function `admin-usuarios`, acción `instalar`). Para exigir además un código,
+definir el secret `CODIGO_INSTALACION` en Supabase.
 
 Desde ahí, todo se crea desde la app (sin correos): el admin del sistema da de alta tiendas y sus administradores
-(o aprueba solicitudes de "Registra tu negocio"), y cada tienda crea a sus clientes y les genera usuario (su DNI).
+(o aprueba solicitudes de "Registra tu negocio") y otros administradores del sistema; cada tienda crea a sus clientes
+y les genera usuario (su DNI).
+
+**Ruta de prueba en vivo:** [`docs/RUTA_DE_PRUEBA.md`](docs/RUTA_DE_PRUEBA.md) (también en la pantalla *Ayuda*).
+Para empezar de cero antes de una demo: `supabase/scripts/reiniciar_demo.sql` (**borra todos los datos**).
+
+## 3. PWA y notificaciones
+
+- **Instalable:** `vite-plugin-pwa` con service worker propio (`src/sw/sw.ts`): guarda la app en caché (abre sin
+  internet) pero **nunca** guarda datos de Supabase. Al publicar una versión nueva, la app muestra "Actualizar".
+  La PWA solo se activa en el build (`npm run build && npm run preview`, o en Vercel), no en `npm run dev`.
+- **Avisos dentro de la app (🔔):** tabla `notificaciones`, creada solo por triggers de la BD:
+  - Cliente: *Nueva compra registrada*, *Pago recibido*, recordatorios (3 días antes, 1 día antes, el mismo día) y
+    *Pago vencido* (1, 3, 7, 15 y 30 días).
+  - Administrador del negocio: *Cobranza del día* (cuántos vencen hoy y cuántos están vencidos).
+  - Los recordatorios los genera `pg_cron` todos los días a las 8:00 a. m. de Lima (`fn_generar_recordatorios`).
+  - La campana se actualiza al instante con Supabase Realtime (respeta RLS).
+- **Push al celular (opcional):** cuando hay una notificación nueva y el usuario activó "Recibir avisos en este
+  dispositivo", la BD llama (pg_net) a la Edge Function `enviar-push`, que la envía con Web Push. Para activarlo:
+  1. `npx web-push generate-vapid-keys` (una sola vez; guarda las dos llaves).
+  2. Supabase → Edge Functions → **Secrets**: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`
+     (`mailto:` de contacto del grupo).
+  3. `VITE_VAPID_PUBLIC_KEY` = la llave **pública** en `.env.local` y en Vercel → Environment Variables; volver a desplegar.
+  4. Necesita HTTPS (Vercel) o `localhost`. En iPhone solo funciona con la app instalada en la pantalla de inicio (iOS 16.4+).
 
 ## Despliegue en Vercel
 
@@ -42,7 +64,7 @@ Desde ahí, todo se crea desde la app (sin correos): el admin del sistema da de 
    `supabase secrets set ORIGEN_PERMITIDO=https://<tu-app>.vercel.app`
 4. El plan gratuito de Supabase pausa el proyecto por inactividad: abrir la app un día antes de la revisión.
 
-## 3. Cómo está organizado
+## 4. Cómo está organizado
 
 ```
 src/
@@ -55,16 +77,24 @@ src/
   pages/sistema/              Admin del sistema: tiendas, solicitudes, tasas BCRP
   pages/tienda/               Admin del negocio: inicio (listado de pagos), nueva venta, cobranza, clientes, productos
   pages/cliente/MiCuenta.tsx  Portal del cliente (solo lectura)
+  pages/Instalacion.tsx       Configuración inicial (primer administrador del sistema)
+  components/Notificaciones.tsx  Campana 🔔 (Realtime) y activación de push
+  components/PrimerosPasos.tsx   Guía de primeros pasos por rol (ruta de prueba)
+  components/Pwa.tsx          Registro del service worker, "Actualizar" e "Instalar app"
+  sw/sw.ts                    Service worker: caché de la app y notificaciones push
 supabase/
   migrations/002_*.sql        Motor financiero en BD, RLS, auditoría, solicitudes, Storage (ya aplicada)
   migrations/003_*.sql        Ajuste de fn_deuda_vigente (ya aplicada)
   migrations/004_*.sql        Quita al rol anon todo permiso salvo enviar solicitudes (defensa en profundidad)
+  migrations/005_*.sql        Instalación inicial, notificaciones, recordatorios (pg_cron) y suscripciones push
+  scripts/reiniciar_demo.sql  Deja la base en blanco para una demo (BORRA TODO)
   functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
   functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves
+  functions/enviar-push/      Edge Function: envía las notificaciones push (Web Push, llaves VAPID)
   functions/asistente/        Edge Function: chat de ayuda (modelo de NVIDIA); a los clientes les lee su cuenta con su propio token
 ```
 
-## 4. Seguridad
+## 5. Seguridad
 
 | Valor | Dónde vive | ¿Es secreto? |
 |---|---|---|
@@ -72,6 +102,9 @@ supabase/
 | Secret key / `service_role` | Solo en las Edge Functions (Supabase la inyecta) | **Sí.** Nunca en el frontend ni en git. |
 | `NVIDIA_API_KEY` | Secret de Supabase (`supabase secrets set`) | **Sí.** |
 | `ORIGEN_PERMITIDO` | Secret de Supabase | No; restringe CORS al dominio desplegado. |
+| `VITE_VAPID_PUBLIC_KEY` / `VAPID_PUBLIC_KEY` | `.env.local` + Vercel / secret de Supabase | **No** (es pública). |
+| `VAPID_PRIVATE_KEY` | Secret de Supabase | **Sí.** Nunca en el frontend ni en git. |
+| `CODIGO_INSTALACION` (opcional) | Secret de Supabase | Sí; protege la configuración inicial. |
 
 - Todas las tablas tienen RLS y cada política exige rol **y** tienda/cliente. Ventas, cuotas y pagos no tienen política de
   escritura: solo se escriben por `registrar_venta` / `registrar_pago`, que verifican quién llama.
@@ -81,7 +114,7 @@ supabase/
 - Solo `.env.example` se versiona (`.gitignore` excluye `.env` y `.env.*`).
 
 
-## 5. Decisiones de diseño (para el informe y la exposición)
+## 6. Decisiones de diseño (para el informe y la exposición)
 
 - **El cálculo oficial vive en PostgreSQL** (`simular_venta`, `registrar_venta`, `estado_cuenta`, `registrar_pago`).
   El navegador muestra una simulación con `motorFinanciero.ts`, pero al guardar la BD recalcula todo; nadie puede
@@ -96,12 +129,12 @@ supabase/
 - **Interés moratorio:** tasa moratoria pactada sobre el total del período por los días de atraso. *Pendiente confirmar
   con el docente* si durante la mora también corre el interés compensatorio.
 
-## 6. Pendiente para la versión final
+## 7. Pendiente para la versión final
 
 - Cargar las tasas máximas BCRP vigentes (pantalla *Tasas BCRP*). Ojo: un comercio no es entidad financiera; revisar
   qué tope aplica ("operaciones entre personas ajenas al sistema financiero").
 - Precios de productos para clientes en dólares (hoy el catálogo está en soles).
-- PWA (instalable/offline) y despliegue (Vercel/Netlify).
+- Configurar las llaves VAPID para activar los avisos push en el celular (ver sección 3).
 - Generar los tipos de la BD (`supabase gen types`) para tipar el cliente de Supabase.
 - Versionar el esquema base: la migración `001` (tablas) se aplicó desde el panel y no está en el repo.
   Recuperarla con `supabase db pull` para que el proyecto se pueda reconstruir desde cero.

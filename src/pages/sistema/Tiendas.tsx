@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
+import { PrimerosPasos } from '../../components/PrimerosPasos'
 import { Alerta, Boton, Campo, Etiqueta, Modal, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha } from '../../lib/fechas'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
@@ -101,6 +102,7 @@ export default function Tiendas() {
       </div>
       {error && !edicion && !nuevoAdmin && !reset && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
+      <PrimerosPasos key={`${tiendas.length}-${admins.length}`} rol="admin_sistema" />
       <Tarjeta>
         {tiendas.length === 0 ? (
           <Vacio>No hay tiendas registradas.</Vacio>

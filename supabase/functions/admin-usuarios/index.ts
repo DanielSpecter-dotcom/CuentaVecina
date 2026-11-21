@@ -4,6 +4,8 @@
 // La clave secreta solo existe aquí (servidor), nunca en el frontend.
 //
 // Acciones (body JSON { accion, ... }):
+//   instalar               (sin sesión; solo si aún no existe ningún admin_sistema) { usuario, password, nombre, codigo? }
+//   crear_admin_sistema    (admin_sistema)  { usuario, password, nombre }
 //   crear_admin_tienda     (admin_sistema)  { tienda_id, usuario, password, nombre }
 //   aprobar_solicitud      (admin_sistema)  { solicitud_id, usuario?, password }
 //   crear_usuario_cliente  (admin_tienda)   { cliente_id, password, usuario? }
@@ -32,7 +34,7 @@ async function crearCuenta(
   admin: SupabaseClient,
   usuario: string,
   password: string,
-  perfil: { rol: string; tienda_id: string; cliente_id?: string; nombre: string },
+  perfil: { rol: string; tienda_id: string | null; cliente_id?: string; nombre: string },
 ) {
   const { data: existe } = await admin.from('perfiles').select('id').eq('usuario', usuario).maybeSingle()
   if (existe) throw new ErrorHttp(409, `El usuario "${usuario}" ya existe`)
@@ -75,6 +77,30 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
+    const body = await req.json()
+
+    // 0. Instalación inicial: crea el PRIMER administrador del sistema desde la app (sin sesión).
+    //    Solo funciona mientras no exista ningún admin_sistema; después queda cerrada para siempre.
+    //    Si se define el secret CODIGO_INSTALACION, además hay que escribir ese código.
+    if (body.accion === 'instalar') {
+      const { count } = await admin.from('perfiles').select('id', { count: 'exact', head: true }).eq('rol', 'admin_sistema')
+      if ((count ?? 0) > 0) throw new ErrorHttp(409, 'CuentaVecina ya fue configurado. Inicia sesión.')
+      const codigo = Deno.env.get('CODIGO_INSTALACION')
+      if (codigo && body.codigo !== codigo) throw new ErrorHttp(403, 'Código de instalación incorrecto')
+      const r = await crearCuenta(admin, normalizarUsuario(body.usuario), validarPassword(body.password), {
+        rol: 'admin_sistema',
+        tienda_id: null,
+        nombre: String(body.nombre ?? '').trim().slice(0, 100) || 'Administrador',
+      })
+      // Si dos personas instalaron a la vez, se conserva solo la primera cuenta.
+      const { data: admins } = await admin.from('perfiles').select('id').eq('rol', 'admin_sistema').order('created_at').limit(2)
+      if (admins && admins.length > 1 && admins[0].id !== r.id) {
+        await admin.auth.admin.deleteUser(r.id)
+        throw new ErrorHttp(409, 'CuentaVecina ya fue configurado. Inicia sesión.')
+      }
+      return json(r, 201)
+    }
+
     // 1. Autenticar a quien llama (token de sesión del usuario).
     const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
     if (!token) throw new ErrorHttp(401, 'No autenticado')
@@ -90,9 +116,17 @@ Deno.serve(async (req) => {
     const tiendaActiva = (llamante as any)?.tiendas?.estado !== false
     if (!llamante?.activo || (llamante.rol !== 'admin_sistema' && !tiendaActiva)) throw new ErrorHttp(403, 'Usuario inactivo')
 
-    const body = await req.json()
-
     switch (body.accion) {
+      case 'crear_admin_sistema': {
+        if (llamante.rol !== 'admin_sistema') throw new ErrorHttp(403, 'Solo el administrador del sistema')
+        const r = await crearCuenta(admin, normalizarUsuario(body.usuario), validarPassword(body.password), {
+          rol: 'admin_sistema',
+          tienda_id: null,
+          nombre: String(body.nombre ?? '').trim().slice(0, 100),
+        })
+        return json(r, 201)
+      }
+
       case 'crear_admin_tienda': {
         if (llamante.rol !== 'admin_sistema') throw new ErrorHttp(403, 'Solo el administrador del sistema')
         const { data: t } = await admin.from('tiendas').select('id').eq('id', body.tienda_id).maybeSingle()

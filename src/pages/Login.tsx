@@ -1,9 +1,9 @@
-import { useState, type SubmitEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Logo } from '../components/Layout'
 import { Alerta, Boton, Campo } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { mensajeError } from '../lib/supabase'
+import { mensajeError, supabase } from '../lib/supabase'
 import { INICIO_POR_ROL } from '../routes/ProtectedRoute'
 
 export default function Login() {
@@ -13,6 +13,12 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [verPassword, setVerPassword] = useState(false)
+  const [instalacionPendiente, setInstalacionPendiente] = useState(false)
+
+  // Base de datos recién creada (sin administrador del sistema): ofrecer la configuración inicial.
+  useEffect(() => {
+    supabase.rpc('instalacion_pendiente').then(({ data }) => setInstalacionPendiente(data === true))
+  }, [])
 
   if (!cargando && sesion && perfil) return <Navigate to={INICIO_POR_ROL[perfil.rol]} replace />
 
@@ -37,6 +43,15 @@ export default function Login() {
         </div>
         <p className="mt-2 font-display text-xl font-semibold text-stone-800 sm:text-2xl">El cuaderno de fiados del barrio, ahora digital.</p>
       </div>
+      {instalacionPendiente && (
+        <div className="w-full max-w-sm rounded-2xl border-2 border-marca-700 bg-white p-5 shadow-md">
+          <p className="font-display text-lg font-bold">Primera vez aquí</p>
+          <p className="mt-1 text-sm text-stone-700">Aún no existe el administrador del sistema. Créalo para empezar a usar CuentaVecina.</p>
+          <Link to="/instalacion" className="mt-3 inline-block rounded-lg bg-marca-700 px-4 py-2 text-sm font-semibold text-white hover:bg-marca-800">
+            Configurar CuentaVecina
+          </Link>
+        </div>
+      )}
       <form onSubmit={enviar} className="w-full max-w-sm space-y-4 rounded-2xl border border-stone-300 bg-white p-6 shadow-md">
         <h1 className="text-2xl font-bold sm:text-3xl">Iniciar sesión</h1>
         {error && <Alerta>{error}</Alerta>}

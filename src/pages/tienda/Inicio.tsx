@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { PrimerosPasos } from '../../components/PrimerosPasos'
 import { Alerta, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
@@ -82,6 +83,7 @@ export default function Inicio() {
           {tienda?.giro} · RUC {tienda?.ruc}
         </p>
       </div>
+      <PrimerosPasos rol="admin_tienda" />
       {error && <Alerta>{error}</Alerta>}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Tarjeta>

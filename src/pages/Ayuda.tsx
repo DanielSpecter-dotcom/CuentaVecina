@@ -32,10 +32,75 @@ const PREGUNTAS = [
   },
 ]
 
+// Ruta para probar la app en vivo desde cero (también en docs/RUTA_DE_PRUEBA.md).
+const RUTA = [
+  { rol: 'Configuración inicial', pasos: ['En la pantalla de inicio de sesión, "Configurar CuentaVecina": se crea el administrador del sistema.'] },
+  {
+    rol: 'Administrador del sistema',
+    pasos: [
+      'Tiendas → "+ Alta de tienda" (o aprobar una solicitud de "Registra tu negocio").',
+      'En la fila de la tienda → "+ crear administrador" con usuario y contraseña.',
+      'Opcional: Administradores → crear otro administrador del sistema.',
+    ],
+  },
+  {
+    rol: 'Administrador del negocio',
+    pasos: [
+      'Productos → registrar al menos uno (precio al contado y de crédito).',
+      'Clientes → registrar un cliente con su tasa, límite, día de corte y día de pago.',
+      'Clientes → "+ crear usuario": el cliente entra con su DNI.',
+      'Nueva venta → registrar una compra a fin de mes y otra en cuotas.',
+      'Cobranza → elegir el período y "Registrar pago total".',
+    ],
+  },
+  { rol: 'Cliente', pasos: ['Entra con su DNI: ve sus compras, cuotas y pagos, y en la campana 🔔 los avisos de compra y de pago.'] },
+]
+
+const PREGUNTAS_AVISOS = [
+  {
+    p: '¿Qué avisos envía la app?',
+    r: 'Al cliente: cada compra registrada, cada pago recibido, recordatorios 3 días antes, 1 día antes y el día de pago, y avisos de pago vencido. Al administrador del negocio: un resumen diario de lo que vence hoy y lo vencido. Los recordatorios se generan todos los días a las 8:00 a. m.',
+  },
+  {
+    p: '¿Cómo recibo los avisos en el celular?',
+    r: 'Toca la campana 🔔 y luego "Recibir avisos en este dispositivo", y acepta el permiso. En iPhone primero instala la app: Compartir → Agregar a pantalla de inicio.',
+  },
+  {
+    p: '¿Cómo instalo la app?',
+    r: 'En Android o en la computadora (Chrome/Edge) aparece el botón "Instalar app". En iPhone: Compartir → Agregar a pantalla de inicio. Funciona igual que la versión web.',
+  },
+]
+
 export default function Ayuda() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold sm:text-3xl">Ayuda y asistencia</h1>
+      <Tarjeta titulo="Ruta de prueba: de cero a un pago registrado">
+        <ol className="space-y-3">
+          {RUTA.map((r, i) => (
+            <li key={r.rol}>
+              <p className="font-semibold">
+                {i + 1}. {r.rol}
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-6 text-sm text-stone-700">
+                {r.pasos.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </Tarjeta>
+      <Tarjeta titulo="Avisos y app en el celular">
+        <dl className="divide-y divide-stone-100">
+          {PREGUNTAS_AVISOS.map((q) => (
+            <div key={q.p} className="py-3">
+              <dt className="font-medium">{q.p}</dt>
+              <dd className="mt-1 text-sm text-stone-600">{q.r}</dd>
+            </div>
+          ))}
+        </dl>
+      </Tarjeta>
       <p className="text-sm text-stone-600">
         En cada formulario, el ícono <span className="rounded-full bg-stone-200 px-1.5 text-xs font-bold">?</span> junto a cada campo
         explica qué ingresar.

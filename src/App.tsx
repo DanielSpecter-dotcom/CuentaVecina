@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { Pwa } from './components/Pwa'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Ayuda from './pages/Ayuda'
+import Instalacion from './pages/Instalacion'
 import MiCuenta from './pages/cliente/MiCuenta'
 import Login from './pages/Login'
 import RegistroNegocio from './pages/RegistroNegocio'
+import Administradores from './pages/sistema/Administradores'
 import Bcrp from './pages/sistema/Bcrp'
 import Solicitudes from './pages/sistema/Solicitudes'
 import Tiendas from './pages/sistema/Tiendas'
@@ -53,12 +56,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Raiz />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/instalacion" element={<Instalacion />} />
           <Route path="/registro-negocio" element={<RegistroNegocio />} />
           <Route path="/sin-acceso" element={<SinAcceso />} />
           <Route element={<Layout />}>
             <Route path="/sistema/tiendas" element={r('admin_sistema', <Tiendas />)} />
             <Route path="/sistema/solicitudes" element={r('admin_sistema', <Solicitudes />)} />
             <Route path="/sistema/bcrp" element={r('admin_sistema', <Bcrp />)} />
+            <Route path="/sistema/administradores" element={r('admin_sistema', <Administradores />)} />
             <Route path="/tienda" element={r('admin_tienda', <Inicio />)} />
             <Route path="/tienda/venta" element={r('admin_tienda', <NuevaVenta />)} />
             <Route path="/tienda/cobranza" element={r('admin_tienda', <Cobranza />)} />
@@ -69,6 +74,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Pwa />
       </BrowserRouter>
     </AuthProvider>
   )

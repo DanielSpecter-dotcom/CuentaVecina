@@ -2,6 +2,7 @@ import { Navigate, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import type { Rol } from '../types'
 import { Asistente } from './Asistente'
+import { Notificaciones } from './Notificaciones'
 import { Boton } from './ui'
 
 const MENU: Record<Rol, { a: string; texto: string }[]> = {
@@ -9,6 +10,7 @@ const MENU: Record<Rol, { a: string; texto: string }[]> = {
     { a: '/sistema/tiendas', texto: 'Tiendas' },
     { a: '/sistema/solicitudes', texto: 'Solicitudes' },
     { a: '/sistema/bcrp', texto: 'Tasas BCRP' },
+    { a: '/sistema/administradores', texto: 'Administradores' },
   ],
   admin_tienda: [
     { a: '/tienda', texto: 'Inicio' },
@@ -65,6 +67,7 @@ export function Layout() {
             </NavLink>
           </nav>
           <div className="ml-auto flex min-w-0 items-center gap-3 text-right">
+            <Notificaciones />
             <div className="min-w-0 leading-tight">
               <div className="truncate text-sm font-medium">{perfil.nombre ?? perfil.usuario}</div>
               <div className="truncate text-xs text-stone-600">{tienda ? tienda.nombre_comercial : NOMBRE_ROL[perfil.rol]}</div>
