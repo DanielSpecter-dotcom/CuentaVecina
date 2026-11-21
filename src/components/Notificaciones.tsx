@@ -71,14 +71,19 @@ export function Notificaciones() {
     return () => clearTimeout(t)
   }, [nueva])
 
-  // Cerrar el panel al hacer clic fuera.
+  // Cerrar el panel al hacer clic fuera o con Escape.
   useEffect(() => {
     if (!abierta) return
     const cerrar = (e: MouseEvent) => {
       if (panel.current && !panel.current.contains(e.target as Node)) setAbierta(false)
     }
+    const escape = (e: KeyboardEvent) => e.key === 'Escape' && setAbierta(false)
     document.addEventListener('mousedown', cerrar)
-    return () => document.removeEventListener('mousedown', cerrar)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', cerrar)
+      document.removeEventListener('keydown', escape)
+    }
   }, [abierta])
 
   const sinLeer = lista.filter((n) => !n.leida).length
@@ -116,33 +121,37 @@ export function Notificaciones() {
         onClick={() => setAbierta((v) => !v)}
         aria-label={sinLeer ? `Notificaciones: ${sinLeer} sin leer` : 'Notificaciones'}
         aria-expanded={abierta}
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg text-xl hover:bg-stone-100"
+        className="relative flex h-11 w-11 items-center justify-center rounded-xl text-xl hover:bg-papel-borde/60"
       >
         <span aria-hidden="true">🔔</span>
         {sinLeer > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-red-600 px-1 text-center text-xs leading-5 font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-vencido px-1 text-center text-xs leading-5 font-bold text-white">
             {sinLeer > 9 ? '9+' : sinLeer}
           </span>
         )}
       </button>
 
       {abierta && (
-        <div className="fixed inset-x-3 top-16 z-40 rounded-2xl border border-stone-200 bg-white text-left shadow-xl sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-[22rem]">
-          <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
-            <h2 className="text-base font-semibold">Notificaciones</h2>
+        <>
+          {/* Celular: hoja inferior con fondo oscurecido. */}
+          <div aria-hidden="true" className="fixed inset-0 z-40 bg-tinta/60 sm:hidden" onClick={() => setAbierta(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-3xl border border-papel-borde bg-papel pb-[env(safe-area-inset-bottom)] text-left shadow-xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:max-h-none sm:w-[22rem] sm:rounded-2xl sm:pb-0">
+          <div aria-hidden="true" className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-papel-borde sm:hidden" />
+          <div className="flex items-center justify-between gap-2 border-b border-papel-borde px-4 py-2">
+            <h2 className="text-lg font-bold">Notificaciones</h2>
             {sinLeer > 0 && (
-              <button className="text-xs font-medium text-marca-800 hover:underline" onClick={marcarTodas}>
+              <button className="min-h-11 text-sm font-bold underline underline-offset-4" onClick={marcarTodas}>
                 Marcar todas como leídas
               </button>
             )}
           </div>
-          <ul className="max-h-96 overflow-y-auto">
-            {lista.length === 0 && <li className="px-4 py-8 text-center text-sm text-stone-500">No tienes notificaciones.</li>}
+          <ul className="min-h-0 flex-1 overflow-y-auto sm:max-h-96">
+            {lista.length === 0 && <li className="px-4 py-8 text-center text-sm text-tinta-suave">No tienes notificaciones.</li>}
             {lista.map((n) => (
               <li key={n.id}>
                 <button
                   onClick={() => abrir(n)}
-                  className={`flex w-full gap-3 border-b border-stone-100 px-4 py-3 text-left hover:bg-stone-50 ${n.leida ? '' : 'bg-marca-50/60'}`}
+                  className={`flex min-h-14 w-full gap-3 border-b border-papel-borde px-4 py-3 text-left hover:bg-papel-borde/40 ${n.leida ? '' : 'bg-resaltador-suave'}`}
                 >
                   <span aria-hidden="true" className="text-lg">
                     {ICONO[n.tipo]}
@@ -150,43 +159,44 @@ export function Notificaciones() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className={`text-sm ${n.leida ? 'font-medium' : 'font-bold'}`}>{n.titulo}</span>
-                      <span className="shrink-0 text-xs text-stone-500">{hace(n.created_at)}</span>
+                      <span className="shrink-0 text-xs text-tinta-suave">{hace(n.created_at)}</span>
                     </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-stone-600">{n.cuerpo}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-tinta-suave">{n.cuerpo}</span>
                   </span>
                 </button>
               </li>
             ))}
           </ul>
-          <div className="space-y-2 px-4 py-3 text-xs text-stone-600">
+          <div className="space-y-2 px-4 py-3 text-xs text-tinta-suave">
             {push === 'no-soportado' && <p>Este navegador no admite avisos en el celular.</p>}
             {push === 'no-configurado' && <p>Los avisos en el celular aún no están configurados (falta la llave VAPID).</p>}
             {push === 'bloqueado' && <p>Bloqueaste las notificaciones de esta página. Actívalas en la configuración del navegador.</p>}
             {(push === 'activo' || push === 'inactivo') && (
               <button
                 onClick={cambiarPush}
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 font-medium text-stone-800 hover:bg-stone-50"
+                className="min-h-11 w-full rounded-xl border-[1.5px] border-tinta bg-white px-3 py-2 text-sm font-bold text-tinta hover:bg-papel-borde/40"
               >
                 {push === 'activo' ? '🔕 Dejar de recibir avisos en este dispositivo' : '📲 Recibir avisos en este dispositivo'}
               </button>
             )}
-            {error && <p className="text-red-700">{error}</p>}
+            {error && <p className="font-bold text-vencido">{error}</p>}
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {nueva && !abierta && (
         <button
           onClick={() => abrir(nueva)}
           role="status"
-          className="fixed top-20 right-4 z-50 flex max-w-sm gap-3 rounded-2xl border border-marca-200 bg-white p-4 text-left shadow-xl"
+          className="fixed top-20 right-4 z-50 flex max-w-sm gap-3 rounded-2xl border border-papel-borde bg-white p-4 text-left shadow-xl max-sm:left-4"
         >
           <span aria-hidden="true" className="text-xl">
             {ICONO[nueva.tipo]}
           </span>
           <span>
             <span className="block text-sm font-bold">{nueva.titulo}</span>
-            <span className="block text-xs text-stone-600">{nueva.cuerpo}</span>
+            <span className="block text-xs text-tinta-suave">{nueva.cuerpo}</span>
           </span>
         </button>
       )}

@@ -89,7 +89,7 @@ export function Layout() {
       >
         Saltar al contenido
       </a>
-      <header className="no-imprimir sticky top-0 z-20 bg-papel md:border-b md:border-papel-borde">
+      <header className="no-imprimir sticky top-0 z-40 bg-papel md:border-b md:border-papel-borde">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:gap-6">
           <span className="flex min-w-0 items-center gap-2 md:hidden">
             <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />

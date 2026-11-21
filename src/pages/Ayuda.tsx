@@ -1,3 +1,4 @@
+import { Hoja, RenglonTitulo } from '../components/cuaderno'
 import { Tarjeta } from '../components/ui'
 
 // Copiadas en supabase/functions/asistente/index.ts (AYUDA): si cambian aquí, actualizar allá.
@@ -71,52 +72,68 @@ const PREGUNTAS_AVISOS = [
   },
 ]
 
+/** Preguntas en acordeón nativo (<details>): accesible con teclado y lector de pantalla sin JavaScript. */
+function Preguntas({ lista }: { lista: { p: string; r: string }[] }) {
+  return (
+    <div className="divide-y divide-papel-borde border-y border-papel-borde">
+      {lista.map((q) => (
+        <details key={q.p} className="group">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 py-2 font-bold [&::-webkit-details-marker]:hidden">
+            {q.p}
+            <span aria-hidden="true" className="shrink-0 text-2xl leading-none transition group-open:rotate-45">
+              +
+            </span>
+          </summary>
+          <p className="pb-4 text-sm leading-relaxed text-tinta-suave">{q.r}</p>
+        </details>
+      ))}
+    </div>
+  )
+}
+
 export default function Ayuda() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold sm:text-3xl">Ayuda y asistencia</h1>
-      <Tarjeta titulo="Ruta de prueba: de cero a un pago registrado">
-        <ol className="space-y-3">
+    <div className="space-y-6">
+      <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Ayuda y asistencia</h1>
+
+      <Hoja>
+        <RenglonTitulo titulo="Ruta de prueba" subtitulo="De cero a un pago registrado" />
+        <ol>
           {RUTA.map((r, i) => (
             <li key={r.rol}>
-              <p className="font-semibold">
-                {i + 1}. {r.rol}
+              <p className="flex min-h-14 items-center">
+                <span className="w-11 shrink-0 text-center font-display text-xl font-extrabold text-vencido">{i + 1}</span>
+                <span className="pl-4 font-bold">{r.rol}</span>
               </p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-6 text-sm text-stone-700">
+              <ul>
                 {r.pasos.map((p) => (
-                  <li key={p}>{p}</li>
+                  <li key={p} className="flex min-h-14 items-center py-1.5 pr-4 pl-15 text-sm leading-7">
+                    {p}
+                  </li>
                 ))}
               </ul>
             </li>
           ))}
         </ol>
-      </Tarjeta>
-      <Tarjeta titulo="Avisos y app en el celular">
-        <dl className="divide-y divide-stone-100">
-          {PREGUNTAS_AVISOS.map((q) => (
-            <div key={q.p} className="py-3">
-              <dt className="font-medium">{q.p}</dt>
-              <dd className="mt-1 text-sm text-stone-600">{q.r}</dd>
-            </div>
-          ))}
-        </dl>
-      </Tarjeta>
-      <p className="text-sm text-stone-600">
-        En cada formulario, el ícono <span className="rounded-full bg-stone-200 px-1.5 text-xs font-bold">?</span> junto a cada campo
+      </Hoja>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-bold">Avisos y app en el celular</h2>
+        <Preguntas lista={PREGUNTAS_AVISOS} />
+      </section>
+
+      <p className="text-sm text-tinta-suave">
+        En cada formulario, el ícono <span className="rounded-full bg-papel-borde px-1.5 text-xs font-bold text-tinta">?</span> junto a cada campo
         explica qué ingresar.
       </p>
-      <Tarjeta>
-        <dl className="divide-y divide-stone-100">
-          {PREGUNTAS.map((q) => (
-            <div key={q.p} className="py-3">
-              <dt className="font-medium">{q.p}</dt>
-              <dd className="mt-1 text-sm text-stone-600">{q.r}</dd>
-            </div>
-          ))}
-        </dl>
-      </Tarjeta>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-bold">Preguntas frecuentes</h2>
+        <Preguntas lista={PREGUNTAS} />
+      </section>
+
       <Tarjeta titulo="Soporte técnico">
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-tinta-suave">
           Si encuentras un error, anota qué estabas haciendo y la hora, y escríbele al administrador del sistema. Todas las operaciones
           quedan registradas en la auditoría, así que podemos revisar qué pasó.
         </p>

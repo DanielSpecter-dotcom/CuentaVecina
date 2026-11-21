@@ -56,12 +56,12 @@ export function Pwa() {
 
   if (hayVersionNueva) {
     return (
-      <div role="status" className="no-imprimir fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-stone-900 p-4 text-sm text-white shadow-xl">
+      <div role="status" className="no-imprimir fixed inset-x-4 bottom-[calc(var(--alto-nav)+1rem)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-tinta p-4 text-sm text-papel shadow-xl md:bottom-24">
         <span className="flex-1">Hay una nueva versión de CuentaVecina.</span>
-        <button className="rounded-lg bg-white px-3 py-1.5 font-semibold text-stone-900" onClick={() => updateServiceWorker(true)}>
+        <button className="min-h-11 rounded-xl bg-resaltador px-4 font-bold text-tinta" onClick={() => updateServiceWorker(true)}>
           Actualizar
         </button>
-        <button className="px-2 text-stone-300" aria-label="Más tarde" onClick={() => setHayVersionNueva(false)}>
+        <button className="h-11 w-11 shrink-0 rounded-xl text-xl text-papel/80 hover:bg-white/10" aria-label="Más tarde" onClick={() => setHayVersionNueva(false)}>
           ×
         </button>
       </div>
@@ -71,24 +71,24 @@ export function Pwa() {
   if (yaInstalada || oculto || (!eventoInstalar && !esIOS)) return null
 
   return (
-    <div className="no-imprimir fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl border border-marca-200 bg-white p-4 text-sm shadow-xl">
+    <div className="no-imprimir fixed inset-x-4 bottom-[calc(var(--alto-nav)+1rem)] z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-tinta p-4 text-sm text-papel shadow-xl md:bottom-24">
       <img src="/icons/icono-192.png" alt="" className="h-10 w-10 rounded-lg" />
       <div className="flex-1">
-        <p className="font-semibold">Instala CuentaVecina en tu celular</p>
+        <p className="font-bold">Instala CuentaVecina en tu celular</p>
         {eventoInstalar ? (
-          <p className="text-stone-600">Ábrela como una app, sin buscarla en el navegador, y recibe tus recordatorios de pago.</p>
+          <p className="text-papel/80">Ábrela como una app, sin buscarla en el navegador, y recibe tus recordatorios de pago.</p>
         ) : (
-          <p className="text-stone-600">
+          <p className="text-papel/80">
             En iPhone: toca <strong>Compartir</strong> y luego <strong>Agregar a pantalla de inicio</strong>. Así también recibirás avisos.
           </p>
         )}
         {eventoInstalar && (
-          <button className="mt-2 rounded-lg bg-marca-700 px-3 py-1.5 font-semibold text-white" onClick={instalar}>
+          <button className="mt-2 min-h-11 rounded-xl bg-resaltador px-4 font-bold text-tinta" onClick={instalar}>
             Instalar app
           </button>
         )}
       </div>
-      <button className="px-1 text-xl text-stone-400" aria-label="Cerrar" onClick={ocultar}>
+      <button className="h-11 w-11 shrink-0 rounded-xl text-xl text-papel/80 hover:bg-white/10" aria-label="Cerrar" onClick={ocultar}>
         ×
       </button>
     </div>
