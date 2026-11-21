@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { desactivarPush } from '../lib/push'
 import { supabase, usuarioAEmail } from '../lib/supabase'
 import type { Perfil, Tienda } from '../types'
 
@@ -60,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const cerrarSesion = async () => {
+    // Este dispositivo deja de recibir los avisos push del usuario que sale.
+    await desactivarPush().catch(() => undefined)
     await supabase.auth.signOut()
   }
 

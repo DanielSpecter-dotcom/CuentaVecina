@@ -147,3 +147,14 @@ export interface EstadoCuenta {
   interesMoratorio: number
   total: number
 }
+
+export interface Notificacion {
+  id: string
+  perfil_id: string
+  tipo: 'VENTA' | 'PAGO' | 'RECORDATORIO' | 'VENCIDO' | 'RESUMEN' | 'SISTEMA'
+  titulo: string
+  cuerpo: string
+  url: string | null
+  leida: boolean
+  created_at: string
+}
