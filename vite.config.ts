@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -10,5 +11,38 @@ export default defineConfig(({ command, mode }) => {
   if (command === 'build' && faltan.length) {
     throw new Error(`Faltan variables de entorno: ${faltan.join(', ')} (en Vercel: Settings → Environment Variables)`)
   }
-  return { plugins: [react(), tailwindcss()] }
+  return {
+    plugins: [
+      react(),
+      tailwindcss(),
+      // PWA: instalable en el celular, abre sin internet y recibe notificaciones push.
+      VitePWA({
+        strategies: 'injectManifest', // service worker propio (src/sw/sw.ts) para manejar push
+        srcDir: 'src/sw',
+        filename: 'sw.ts',
+        registerType: 'prompt', // la app avisa "hay una nueva versión" en vez de recargar sola
+        injectRegister: false, // lo registra components/Pwa.tsx
+        injectManifest: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
+        devOptions: { enabled: false },
+        manifest: {
+          name: 'CuentaVecina — el cuaderno de fiados, digital',
+          short_name: 'CuentaVecina',
+          description: 'Cuentas corrientes y ventas al crédito para bodegas y comercios de barrio.',
+          lang: 'es-PE',
+          start_url: '/',
+          scope: '/',
+          display: 'standalone',
+          orientation: 'portrait',
+          theme_color: '#0f766e',
+          background_color: '#fafaf9',
+          categories: ['finance', 'business'],
+          icons: [
+            { src: '/icons/icono-192.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icons/icono-512.png', sizes: '512x512', type: 'image/png' },
+            { src: '/icons/icono-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
+        },
+      }),
+    ],
+  }
 })
