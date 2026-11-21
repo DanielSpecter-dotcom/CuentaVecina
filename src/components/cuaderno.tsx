@@ -298,7 +298,7 @@ export function SelloVencido({ children }: { children: ReactNode }) {
   )
 }
 
-export function iniciales(nombre: string): string {
+function iniciales(nombre: string): string {
   const p = nombre.trim().split(/\s+/)
   return ((p[0]?.[0] ?? '') + (p.length > 1 ? p[1][0] : '')).toUpperCase()
 }

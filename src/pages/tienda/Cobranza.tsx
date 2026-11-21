@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Avatar, BarraAccion, Hoja, MargenFecha, Renglon, RenglonTitulo, SelectorCliente } from '../../components/cuaderno'
 import { EstadoCuentaVista } from '../../components/EstadoCuentaVista'
 import { Alerta, Boton, Campo, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { moneda as aMoneda } from '../../lib/codigos'
+import { describirTasa, moneda as aMoneda } from '../../lib/codigos'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
 import { dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
@@ -78,134 +79,177 @@ export default function Cobranza() {
     cargarCliente()
   }
 
+  function elegirCliente(id: string) {
+    setAviso(null)
+    setError(null)
+    setParams(id ? { cliente: id } : {})
+  }
+
   const esMasAntiguo = periodos[0]?.fecha_pago === fechaPago
+  const hayListado = ec && ec.items.length > 0
 
   return (
-    <div className="space-y-4">
-      <h1 className="no-imprimir text-2xl font-bold sm:text-3xl">Cobranza y estado de cuenta</h1>
+    <div className="space-y-5">
+      <div className="no-imprimir flex items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Cobranza</h1>
+        {hayListado && (
+          <Boton variante="secundario" onClick={() => window.print()}>
+            Imprimir
+          </Boton>
+        )}
+      </div>
       {error && <Alerta>{error}</Alerta>}
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="no-imprimir space-y-4">
-          <Tarjeta>
-            <Campo etiqueta="Cliente" ayuda="Elige al cliente para ver sus períodos con deuda.">
-              <select
-                value={clienteId}
-                onChange={(e) => {
-                  setAviso(null)
-                  setError(null)
-                  setParams(e.target.value ? { cliente: e.target.value } : {})
-                }}
-              >
-                <option value="">Selecciona…</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre} — DNI {c.documento}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-          </Tarjeta>
-          {clienteId && (
-            <Tarjeta titulo="Períodos pendientes">
-              {periodos.length === 0 ? (
-                <Vacio>Sin deuda pendiente. 🎉</Vacio>
-              ) : (
-                <ul className="space-y-2">
-                  {periodos.map((p) => {
-                    const vencido = p.fecha_pago < hoyLima()
-                    return (
-                      <li key={p.fecha_pago}>
-                        <button
-                          onClick={() => setFechaPago(p.fecha_pago)}
-                          aria-pressed={p.fecha_pago === fechaPago}
-                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm ${
-                            p.fecha_pago === fechaPago ? 'border-marca-600 bg-marca-50' : 'border-stone-200 hover:bg-stone-50'
-                          }`}
-                        >
-                          <span>
-                            Pago {formatearFecha(p.fecha_pago)}
-                            <span className="block text-xs text-stone-600">{p.items} {p.items === 1 ? 'ítem' : 'ítems'}</span>
-                          </span>
-                          <span className="text-right">
-                            <span className="block font-medium">{dinero(p.total, m)}</span>
-                            {vencido && <Etiqueta color="rojo">vencido</Etiqueta>}
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </Tarjeta>
-          )}
-        </div>
 
-        <div className="space-y-4 lg:col-span-2">
-          {ec && ec.items.length > 0 && (
-            <Tarjeta
-              titulo="Listado de pago"
-              acciones={
-                <span className="no-imprimir">
-                  <Boton variante="secundario" onClick={() => window.print()}>
-                    Imprimir
-                  </Boton>
-                </span>
-              }
-            >
-              <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
-              <div className="no-imprimir mt-5 flex flex-wrap items-end gap-3 border-t border-stone-100 pt-4">
-                <Campo
-                  etiqueta="Fecha en que paga"
-                  ayuda="Si es posterior a la fecha de pago, se calculan intereses por mora con la tasa moratoria pactada. No puede ser futura."
-                >
-                  <input type="date" value={fechaEfectiva} max={hoyLima()} onChange={(e) => setFechaEfectiva(e.target.value)} />
-                </Campo>
-                <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo}>
-                  Registrar pago total de {dinero(ec.total, m)}
-                </Boton>
-                {!esMasAntiguo && <span className="text-xs text-amber-700">Primero debe pagarse el período más antiguo.</span>}
-              </div>
-            </Tarjeta>
-          )}
-          {clienteId && (
-            <Tarjeta titulo="Historial de pagos" className="no-imprimir">
-              {pagos.length === 0 ? (
-                <Vacio>Aún no hay pagos.</Vacio>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Pagó el</th>
-                        <th>Período (pago)</th>
-                        <th className="text-right">Mora</th>
-                        <th className="text-right">Interés</th>
-                        <th className="text-right">Capital</th>
-                        <th className="text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pagos.map((p) => (
-                        <tr key={p.id}>
-                          <td>
-                            {formatearFecha(p.fecha_efectiva_pago)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
-                          </td>
-                          <td>{formatearFecha(p.fecha_vencimiento)}</td>
-                          <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
-                          <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
-                          <td className="text-right">{dinero(p.capital, m)}</td>
-                          <td className="text-right font-medium">{dinero(p.monto_pagado, m)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Tarjeta>
-          )}
-        </div>
+      <div className="no-imprimir">
+        {cliente ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-papel-borde bg-white p-3">
+            <Avatar nombre={cliente.nombre} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{cliente.nombre}</p>
+              <p className="text-xs text-tinta-suave">DNI {cliente.documento}</p>
+              <p className="text-xs font-bold">
+                {describirTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion)} · Mora{' '}
+                {describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
+              </p>
+            </div>
+            <button type="button" onClick={() => elegirCliente('')} className="min-h-11 shrink-0 px-2 font-bold underline underline-offset-4">
+              Cambiar
+            </button>
+          </div>
+        ) : (
+          <SelectorCliente clientes={clientes} valor={clienteId} onChange={elegirCliente} ayuda="Elige al cliente para ver sus períodos con deuda." />
+        )}
       </div>
+
+      {clienteId && (
+        <section aria-labelledby="titulo-periodos" className="no-imprimir space-y-2">
+          <h2 id="titulo-periodos" className="text-lg font-bold">
+            Períodos pendientes
+          </h2>
+          {periodos.length === 0 ? (
+            <Vacio>Sin deuda pendiente. 🎉</Vacio>
+          ) : (
+            <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2">
+              {periodos.map((p) => {
+                const vencido = p.fecha_pago < hoyLima()
+                const sel = p.fecha_pago === fechaPago
+                return (
+                  <li key={p.fecha_pago} className="shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setFechaPago(p.fecha_pago)}
+                      aria-pressed={sel}
+                      className={`flex w-44 flex-col items-start gap-1 rounded-xl bg-white p-3 text-left ${
+                        sel
+                          ? vencido
+                            ? 'border-2 border-vencido shadow-[3px_3px_0_var(--color-vencido)]'
+                            : 'border-2 border-tinta shadow-[3px_3px_0_var(--color-tinta)]'
+                          : 'border-[1.5px] border-linea'
+                      }`}
+                    >
+                      <span className="text-sm font-bold">Pago {formatearFecha(p.fecha_pago)}</span>
+                      {vencido ? <Etiqueta color="rojo">vencido</Etiqueta> : <Etiqueta>pendiente</Etiqueta>}
+                      <span className="text-xs text-tinta-suave">
+                        {p.items} {p.items === 1 ? 'ítem' : 'ítems'}
+                      </span>
+                      <span className={`font-display text-lg font-extrabold tabular-nums ${vencido ? 'text-vencido' : ''}`}>{dinero(p.total, m)}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {hayListado && (
+        <>
+          <section aria-label="Listado de pago" className="sm:rounded-2xl sm:border sm:border-papel-borde sm:bg-white sm:p-5 print:border-0 print:p-0">
+            <h2 className="mb-4 hidden font-display text-lg font-bold sm:block print:block">Listado de pago</h2>
+            <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
+          </section>
+          <div className="no-imprimir">
+            <Campo
+              etiqueta="Fecha en que paga"
+              ayuda="Si es posterior a la fecha de pago, se calculan intereses por mora con la tasa moratoria pactada. No puede ser futura."
+            >
+              <input type="date" value={fechaEfectiva} max={hoyLima()} onChange={(e) => setFechaEfectiva(e.target.value)} />
+            </Campo>
+          </div>
+          <BarraAccion>
+            <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo} className="w-full">
+              Registrar pago total de {dinero(ec.total, m)}
+            </Boton>
+            {!esMasAntiguo && (
+              <p className="mt-2 text-center">
+                <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>
+              </p>
+            )}
+          </BarraAccion>
+        </>
+      )}
+
+      {clienteId && (
+        <section aria-label="Historial de pagos" className="no-imprimir">
+          <Hoja className="sm:hidden">
+            <RenglonTitulo titulo="Historial de pagos" />
+            {pagos.length === 0 ? (
+              <p className="flex h-14 items-center pl-15 text-sm text-tinta-suave">Aún no hay pagos.</p>
+            ) : (
+              <ul>
+                {pagos.map((p) => (
+                  <Renglon
+                    key={p.id}
+                    margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
+                    titulo={
+                      <>
+                        Período {formatearFecha(p.fecha_vencimiento)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
+                      </>
+                    }
+                    detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
+                    monto={dinero(p.monto_pagado, m)}
+                  />
+                ))}
+              </ul>
+            )}
+          </Hoja>
+          <Tarjeta titulo="Historial de pagos" className="hidden sm:block">
+            {pagos.length === 0 ? (
+              <Vacio>Aún no hay pagos.</Vacio>
+            ) : (
+              <div className="overflow-x-auto">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pagó el</th>
+                      <th>Período (pago)</th>
+                      <th className="text-right">Mora</th>
+                      <th className="text-right">Interés</th>
+                      <th className="text-right">Capital</th>
+                      <th className="text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagos.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          {formatearFecha(p.fecha_efectiva_pago)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
+                        </td>
+                        <td>{formatearFecha(p.fecha_vencimiento)}</td>
+                        <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
+                        <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
+                        <td className="text-right">{dinero(p.capital, m)}</td>
+                        <td className="text-right font-bold">{dinero(p.monto_pagado, m)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Tarjeta>
+        </section>
+      )}
     </div>
   )
 }

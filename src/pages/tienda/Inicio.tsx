@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Hoja, MargenFecha, MontoGrande, Renglon, RenglonTitulo, RenglonTotal, SelloVencido } from '../../components/cuaderno'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
 import { Alerta, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
-import { useAuth } from '../../context/AuthContext'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
 import { dinero } from '../../lib/formato'
 import { r2 } from '../../lib/motorFinanciero'
@@ -24,7 +24,6 @@ interface Fila {
 }
 
 export default function Inicio() {
-  const { tienda } = useAuth()
   const [filas, setFilas] = useState<Fila[]>([])
   const [numClientes, setNumClientes] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -70,92 +69,179 @@ export default function Inicio() {
   // Soles y dólares no se suman entre sí: cada moneda tiene su propio total.
   const sumar = (lista: Fila[], usd: boolean) => r2(lista.filter((f) => f.cliente.moneda === usd).reduce((s, f) => s + f.capital + f.interes, 0))
   const vencidas = filas.filter((f) => f.fechaPago < hoy)
+  const deHoy = filas.filter((f) => f.fechaPago === hoy)
   const total = { PEN: sumar(filas, false), USD: sumar(filas, true) }
   const vencido = { PEN: sumar(vencidas, false), USD: sumar(vencidas, true) }
+  const totalHoy = { PEN: sumar(deHoy, false), USD: sumar(deHoy, true) }
   const hayUsd = filas.some((f) => f.cliente.moneda)
   const proxima = filas.find((f) => f.fechaPago >= hoy)?.fechaPago
+  const masAntigua = vencidas[0]
+  const clientesVencidos = new Set(vencidas.map((f) => f.cliente.id)).size
+  const comprasHoy = deHoy.reduce((s, f) => s + f.items, 0)
+
+  // "Viernes, noviembre 2026" (la fecha ya está en hora de Lima; se formatea en UTC para no correrla un día).
+  const fechaHoy = new Date(`${hoy}T00:00:00Z`)
+  const parte = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', ...o }).format(fechaHoy)
+  const semana = parte({ weekday: 'long' })
+  const etiquetaHoy = `${semana[0].toUpperCase()}${semana.slice(1)}, ${parte({ month: 'long' })} ${hoy.slice(0, 4)}`
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{tienda?.nombre_comercial}</h1>
-        <p className="text-sm text-stone-600">
-          {tienda?.giro} · RUC {tienda?.ruc}
-        </p>
-      </div>
+    <div className="space-y-5">
+      <header className="margen relative -mx-4 py-2 pr-4 pl-15">
+        <span aria-hidden="true" className="absolute top-2 left-0 w-11 text-center font-display text-[22px] font-extrabold text-vencido">
+          {Number(hoy.slice(8, 10))}
+        </span>
+        <p className="text-sm text-tinta-suave">{etiquetaHoy}</p>
+        <h1 className="font-display text-2xl font-bold">Hoy toca cobrar</h1>
+      </header>
+
+      <section aria-label="Cobros de hoy" className="flex flex-col gap-2">
+        {deHoy.length > 0 ? (
+          <>
+            {totalHoy.PEN > 0 && <MontoGrande>{dinero(totalHoy.PEN)}</MontoGrande>}
+            {totalHoy.USD > 0 && <MontoGrande>{dinero(totalHoy.USD, 'USD')}</MontoGrande>}
+            <p className="text-sm text-tinta-suave">
+              {deHoy.length === 1 ? deHoy[0].cliente.nombre : `${deHoy.length} clientes`} · {comprasHoy} {comprasHoy === 1 ? 'compra' : 'compras'}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-2xl font-extrabold">Nada que cobrar hoy</p>
+            {proxima && <p className="text-sm text-tinta-suave">Próxima fecha de pago: {formatearFecha(proxima)}</p>}
+          </>
+        )}
+      </section>
+
+      {masAntigua && (
+        <SelloVencido>
+          <p className="mt-1 font-display text-2xl font-extrabold text-vencido tabular-nums">
+            {vencido.PEN > 0 && dinero(vencido.PEN)}
+            {vencido.PEN > 0 && vencido.USD > 0 && ' · '}
+            {vencido.USD > 0 && dinero(vencido.USD, 'USD')}
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm">
+              {clientesVencidos === 1 ? masAntigua.cliente.nombre : `${clientesVencidos} clientes`} · desde el {formatearFecha(masAntigua.fechaPago).slice(0, 5)}
+            </p>
+            <Link
+              to={`/tienda/cobranza?cliente=${masAntigua.cliente.id}&fecha=${masAntigua.fechaPago}`}
+              className="inline-flex min-h-11 items-center font-bold text-vencido underline underline-offset-4"
+            >
+              Cobrar ›
+            </Link>
+          </div>
+        </SelloVencido>
+      )}
+
+      <dl className="flex flex-wrap gap-x-8 gap-y-2">
+        <div>
+          <dt className="text-xs text-tinta-suave">Por cobrar</dt>
+          <dd className="text-lg font-bold tabular-nums">
+            {dinero(total.PEN)}
+            {hayUsd && <span className="block">{dinero(total.USD, 'USD')}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-tinta-suave">Vecinos con cuenta</dt>
+          <dd className="text-lg font-bold tabular-nums">{numClientes}</dd>
+        </div>
+      </dl>
+
       <PrimerosPasos rol="admin_tienda" />
       {error && <Alerta>{error}</Alerta>}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Tarjeta>
-          <div className="text-xs text-stone-600">Clientes activos</div>
-          <div className="text-xl font-semibold tabular-nums sm:text-2xl">{numClientes}</div>
-        </Tarjeta>
-        <Tarjeta>
-          <div className="text-xs text-stone-600">Por cobrar (sin mora)</div>
-          <div className="text-xl font-semibold tabular-nums sm:text-2xl text-marca-800">{dinero(total.PEN)}</div>
-          {hayUsd && <div className="text-lg font-semibold tabular-nums text-marca-800">{dinero(total.USD, 'USD')}</div>}
-        </Tarjeta>
-        <Tarjeta>
-          <div className="text-xs text-stone-600">Vencido</div>
-          <div className={`text-xl font-semibold tabular-nums sm:text-2xl ${vencido.PEN > 0 ? 'text-red-700' : ''}`}>{dinero(vencido.PEN)}</div>
-          {hayUsd && <div className={`text-lg font-semibold tabular-nums ${vencido.USD > 0 ? 'text-red-700' : ''}`}>{dinero(vencido.USD, 'USD')}</div>}
-        </Tarjeta>
-        <Tarjeta>
-          <div className="text-xs text-stone-600">Próxima fecha de pago</div>
-          <div className="text-xl font-semibold tabular-nums sm:text-2xl">{proxima ? formatearFecha(proxima) : '—'}</div>
-        </Tarjeta>
-      </div>
 
-      <Tarjeta titulo="Listado de pagos por fecha de pago">
-        {porFecha.length === 0 ? (
-          <Vacio>
-            No hay deudas pendientes. <Link to="/tienda/venta" className="text-marca-700 underline">Registra una venta</Link>.
-          </Vacio>
-        ) : (
-          <div className="space-y-5">
-            {porFecha.map(([fecha, lista]) => (
-              <div key={fecha}>
-                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-                  Pago del {formatearFecha(fecha)}
-                  {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
-                </h3>
-                <div className="overflow-x-auto">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th className="text-right">Ítems</th>
-                      <th className="text-right">Capital</th>
-                      <th className="text-right">Interés</th>
-                      <th className="text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lista.map((f) => {
-                      const m = f.cliente.moneda ? 'USD' : 'PEN'
-                      return (
-                        <tr key={f.cliente.id}>
-                          <td>
-                            <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="text-marca-800 hover:underline">
-                              {f.cliente.nombre}
-                            </Link>
-                            <span className="ml-2 text-xs text-stone-600">DNI {f.cliente.documento}</span>
-                          </td>
-                          <td className="text-right">{f.items}</td>
-                          <td className="text-right">{dinero(f.capital, m)}</td>
-                          <td className="text-right">{dinero(f.interes, m)}</td>
-                          <td className="text-right font-medium">{dinero(f.capital + f.interes, m)}</td>
-                        </tr>
+      {filas.length === 0 ? (
+        <Vacio>
+          No hay deudas pendientes.{' '}
+          <Link to="/tienda/venta" className="font-bold underline underline-offset-4">
+            Registra una venta
+          </Link>
+          .
+        </Vacio>
+      ) : (
+        <>
+          {/* Celular: el cuaderno, un renglón por cliente y fecha de pago. */}
+          <Hoja className="sm:hidden">
+            <RenglonTitulo titulo="El cuaderno" />
+            <ul>
+              {filas.map((f, i) => {
+                const m = f.cliente.moneda ? 'USD' : 'PEN'
+                const venc = f.fechaPago < hoy
+                const repetida = i > 0 && filas[i - 1].fechaPago === f.fechaPago
+                const chipHoy = f.fechaPago === hoy && !repetida
+                return (
+                  <Renglon
+                    key={`${f.fechaPago}|${f.cliente.id}`}
+                    href={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${f.fechaPago}`}
+                    margen={
+                      chipHoy ? (
+                        <>
+                          <span aria-hidden="true">hoy</span>
+                          <span className="sr-only">{formatearFecha(f.fechaPago)}</span>
+                        </>
+                      ) : (
+                        <MargenFecha fecha={f.fechaPago} repetida={repetida} />
                       )
-                    })}
-                  </tbody>
-                </table>
+                    }
+                    tonoMargen={chipHoy ? 'hoy' : venc ? 'vencido' : 'normal'}
+                    titulo={f.cliente.nombre}
+                    detalle={`${f.items} ${f.items === 1 ? 'ítem' : 'ítems'} · cap. ${dinero(f.capital, m)} · int. ${dinero(f.interes, m)}`}
+                    monto={dinero(f.capital + f.interes, m)}
+                    tonoMonto={venc ? 'vencido' : 'normal'}
+                  />
+                )
+              })}
+            </ul>
+            <RenglonTotal etiqueta={hayUsd ? 'Total S/' : 'Total'}>{dinero(total.PEN)}</RenglonTotal>
+            {hayUsd && <RenglonTotal etiqueta="Total US$">{dinero(total.USD, 'USD')}</RenglonTotal>}
+          </Hoja>
+
+          <Tarjeta titulo="Listado de pagos por fecha de pago" className="hidden sm:block">
+            <div className="space-y-5">
+              {porFecha.map(([fecha, lista]) => (
+                <div key={fecha}>
+                  <h3 className="mb-1 flex items-center gap-2 text-sm font-bold">
+                    Pago del {formatearFecha(fecha)}
+                    {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Cliente</th>
+                          <th className="text-right">Ítems</th>
+                          <th className="text-right">Capital</th>
+                          <th className="text-right">Interés</th>
+                          <th className="text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lista.map((f) => {
+                          const m = f.cliente.moneda ? 'USD' : 'PEN'
+                          return (
+                            <tr key={f.cliente.id}>
+                              <td>
+                                <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="font-bold underline-offset-4 hover:underline">
+                                  {f.cliente.nombre}
+                                </Link>
+                                <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
+                              </td>
+                              <td className="text-right">{f.items}</td>
+                              <td className="text-right">{dinero(f.capital, m)}</td>
+                              <td className="text-right">{dinero(f.interes, m)}</td>
+                              <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes, m)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Tarjeta>
+              ))}
+            </div>
+          </Tarjeta>
+        </>
+      )}
     </div>
   )
 }
