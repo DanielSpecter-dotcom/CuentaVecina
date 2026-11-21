@@ -1,6 +1,6 @@
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Logo } from '../components/Layout'
+import { Sello } from '../components/cuaderno'
 import { Alerta, Boton, Campo } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { mensajeError, supabase } from '../lib/supabase'
@@ -36,45 +36,62 @@ export default function Login() {
   }
 
   return (
-    <main className="cuaderno flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
-      <div className="text-center">
-        <div className="flex justify-center [&>span]:text-3xl">
-          <Logo />
+    <main className="cuaderno min-h-screen py-10 pr-4 pl-15">
+      <div className="mx-auto flex max-w-sm flex-col gap-6">
+        <div>
+          <img src="/favicon.svg" alt="" className="h-14 w-14" />
+          <p className="mt-2 font-display text-4xl font-extrabold tracking-tight">CuentaVecina</p>
+          <p className="mt-1 font-display text-xl font-bold">
+            <span className="resaltado">El cuaderno de fiados</span> del barrio, ahora digital.
+          </p>
         </div>
-        <p className="mt-2 font-display text-xl font-semibold text-stone-800 sm:text-2xl">El cuaderno de fiados del barrio, ahora digital.</p>
-      </div>
-      {instalacionPendiente && (
-        <div className="w-full max-w-sm rounded-2xl border-2 border-marca-700 bg-white p-5 shadow-md">
-          <p className="font-display text-lg font-bold">Primera vez aquí</p>
-          <p className="mt-1 text-sm text-stone-700">Aún no existe el administrador del sistema. Créalo para empezar a usar CuentaVecina.</p>
-          <Link to="/instalacion" className="mt-3 inline-block rounded-lg bg-marca-700 px-4 py-2 text-sm font-semibold text-white hover:bg-marca-800">
-            Configurar CuentaVecina
+        {instalacionPendiente && (
+          <Sello className="block p-5">
+            <p className="font-display text-lg font-bold">Primera vez aquí</p>
+            <p className="mt-1 text-tinta-suave">Aún no existe el administrador del sistema. Créalo para empezar a usar CuentaVecina.</p>
+            <Link to="/instalacion" className="mt-3 inline-flex min-h-12 items-center rounded-xl bg-tinta px-5 font-bold text-papel hover:bg-tinta/90">
+              Configurar CuentaVecina
+            </Link>
+          </Sello>
+        )}
+        <form onSubmit={enviar} className="space-y-4 rounded-2xl border-2 border-tinta bg-white p-5 shadow-[4px_4px_0_var(--color-tinta)]">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">Iniciar sesión</h1>
+          {error && <Alerta>{error}</Alerta>}
+          <Campo etiqueta="Usuario" ayuda="Clientes: su número de DNI. Administradores: el usuario que les entregó el administrador del sistema.">
+            <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required autoFocus />
+          </Campo>
+          {/* El botón "Mostrar" va dentro del campo, anclado abajo a la derecha del input. */}
+          <div className="relative">
+            <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Si la olvidaste, pide a tu tienda (o al administrador del sistema) que la restablezca.">
+              <input
+                type={verPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                className="pr-28"
+              />
+            </Campo>
+            <button
+              type="button"
+              aria-pressed={verPassword}
+              onClick={() => setVerPassword((v) => !v)}
+              className="absolute right-0.5 bottom-0.5 h-11 rounded-lg px-3 text-sm font-bold underline underline-offset-4 hover:bg-papel-borde/60"
+            >
+              Mostrar<span className="sr-only"> contraseña</span>
+            </button>
+          </div>
+          <Boton type="submit" cargando={enviando} className="w-full">
+            Entrar
+          </Boton>
+        </form>
+        <p className="rounded-xl bg-white/90 px-3 py-2 text-sm">
+          ¿Tienes un negocio y quieres usar CuentaVecina?{' '}
+          <Link to="/registro-negocio" className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
+            Registra tu negocio
           </Link>
-        </div>
-      )}
-      <form onSubmit={enviar} className="w-full max-w-sm space-y-4 rounded-2xl border border-stone-300 bg-white p-6 shadow-md">
-        <h1 className="text-2xl font-bold sm:text-3xl">Iniciar sesión</h1>
-        {error && <Alerta>{error}</Alerta>}
-        <Campo etiqueta="Usuario" ayuda="Clientes: su número de DNI. Administradores: el usuario que les entregó el administrador del sistema.">
-          <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required autoFocus />
-        </Campo>
-        <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Si la olvidaste, pide a tu tienda (o al administrador del sistema) que la restablezca.">
-          <input type={verPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-        </Campo>
-        <label className="flex items-center gap-2 text-sm text-stone-700">
-          <input type="checkbox" checked={verPassword} onChange={(e) => setVerPassword(e.target.checked)} className="min-h-0 h-4 w-4 accent-marca-700" />
-          Mostrar contraseña
-        </label>
-        <Boton type="submit" cargando={enviando} className="w-full">
-          Entrar
-        </Boton>
-      </form>
-      <p className="rounded-lg bg-white/90 px-3 py-2 text-center text-sm text-stone-700">
-        ¿Tienes un negocio y quieres usar CuentaVecina?{' '}
-        <Link to="/registro-negocio" className="font-semibold text-marca-800 underline underline-offset-2 hover:text-marca-900">
-          Registra tu negocio
-        </Link>
-      </p>
+        </p>
+      </div>
     </main>
   )
 }

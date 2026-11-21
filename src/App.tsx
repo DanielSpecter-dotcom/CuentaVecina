@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Pwa } from './components/Pwa'
+import { Boton } from './components/ui'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Ayuda from './pages/Ayuda'
 import Instalacion from './pages/Instalacion'
@@ -28,22 +29,25 @@ function Raiz() {
 function SinAcceso() {
   const { cerrarSesion } = useAuth()
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
-      <h1 className="text-lg font-semibold">Tu cuenta no tiene acceso</h1>
-      <p className="max-w-md text-sm text-stone-600">
+    <main className="cuaderno flex min-h-screen flex-col items-center justify-center gap-4 py-10 pr-4 pl-15 text-center">
+      <p aria-hidden="true" className="-rotate-[4deg] rounded-xl border-2 border-vencido bg-white px-4 py-2 font-display text-2xl font-extrabold tracking-[0.12em] text-vencido">
+        SIN ACCESO
+      </p>
+      <h1 className="text-2xl font-extrabold">Tu cuenta no tiene acceso</h1>
+      <p className="max-w-md rounded-xl bg-white/90 px-3 py-2 text-sm text-tinta-suave">
         El usuario está desactivado, la tienda fue dada de baja o la cuenta aún no tiene un perfil asignado. Comunícate con tu tienda o con el
         administrador del sistema.
       </p>
-      <button
-        className="text-marca-700 underline"
+      <Boton
+        variante="secundario"
         onClick={async () => {
           await cerrarSesion()
           window.location.assign('/login')
         }}
       >
         Volver al inicio de sesión
-      </button>
-    </div>
+      </Boton>
+    </main>
   )
 }
 
