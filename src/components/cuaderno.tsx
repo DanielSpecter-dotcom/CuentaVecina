@@ -332,12 +332,18 @@ export function SelectorCliente({ clientes, valor, onChange, ayuda }: { clientes
             <button
               type="button"
               aria-pressed={c.id === valor}
-              aria-label={`${c.nombre} — DNI ${c.documento}`}
               onClick={() => onChange(c.id)}
               className={`flex w-18 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-xs ${c.id === valor ? 'bg-resaltador-suave font-bold' : ''}`}
             >
               <Avatar nombre={c.nombre} activo={c.id === valor} />
-              <span className="w-full truncate text-center">{c.nombre.split(' ')[0]}</span>
+              {/* Nombre accesible = nombre visible + resto (WCAG 2.5.3: la etiqueta visible va dentro del nombre). */}
+              <span className="w-full truncate text-center">
+                {c.nombre.split(' ')[0]}
+                <span className="sr-only">
+                  {' '}
+                  {c.nombre.split(' ').slice(1).join(' ')} — DNI {c.documento}
+                </span>
+              </span>
             </button>
           </li>
         ))}

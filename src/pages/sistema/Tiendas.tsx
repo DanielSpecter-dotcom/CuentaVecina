@@ -133,7 +133,7 @@ export default function Tiendas() {
                         <span className="font-bold">{a.usuario}</span>
                         <button
                           className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-                          aria-label={`Restablecer contraseña de ${a.usuario}`}
+                          aria-label={`Restablecer clave de ${a.usuario}`}
                           onClick={() => setReset({ perfil: a, password: '' })}
                         >
                           Restablecer clave

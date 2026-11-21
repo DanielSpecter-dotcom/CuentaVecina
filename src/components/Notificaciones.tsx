@@ -169,7 +169,7 @@ export function Notificaciones() {
           </ul>
           <div className="space-y-2 px-4 py-3 text-xs text-tinta-suave">
             {push === 'no-soportado' && <p>Este navegador no admite avisos en el celular.</p>}
-            {push === 'no-configurado' && <p>Los avisos en el celular aún no están configurados (falta la llave VAPID).</p>}
+            {push === 'no-configurado' && <p>Los avisos en el celular aún no están disponibles.</p>}
             {push === 'bloqueado' && <p>Bloqueaste las notificaciones de esta página. Actívalas en la configuración del navegador.</p>}
             {(push === 'activo' || push === 'inactivo') && (
               <button

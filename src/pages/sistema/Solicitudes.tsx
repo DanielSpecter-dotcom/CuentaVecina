@@ -85,8 +85,8 @@ export default function Solicitudes() {
             return (
               <li
                 key={s.id}
-                className={`flex flex-col rounded-2xl bg-white p-4 ${
-                  pendiente ? 'border-2 border-tinta shadow-[3px_3px_0_var(--color-tinta)]' : 'border border-papel-borde opacity-70'
+                className={`flex flex-col rounded-2xl p-4 ${
+                  pendiente ? 'border-2 border-tinta bg-white shadow-[3px_3px_0_var(--color-tinta)]' : 'border-[1.5px] border-dashed border-linea bg-papel'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">

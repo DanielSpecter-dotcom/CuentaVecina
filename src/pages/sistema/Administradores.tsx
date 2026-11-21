@@ -98,7 +98,7 @@ export default function Administradores() {
                 {p.activo ? <Etiqueta color="verde">Activo</Etiqueta> : <Etiqueta color="rojo">Inactivo</Etiqueta>}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Boton variante="fantasma" aria-label={`Restablecer contraseña de ${p.usuario}`} onClick={() => setReset({ perfil: p, password: '' })}>
+                <Boton variante="fantasma" className="px-2 whitespace-nowrap" aria-label={`Restablecer clave de ${p.usuario}`} onClick={() => setReset({ perfil: p, password: '' })}>
                   Restablecer clave
                 </Boton>
                 {p.id !== yo?.id && (
