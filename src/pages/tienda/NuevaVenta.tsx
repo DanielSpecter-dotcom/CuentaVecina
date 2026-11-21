@@ -142,7 +142,7 @@ export default function NuevaVenta() {
 
       <form onSubmit={registrar}>
         {/* Escritorio: formulario a la izquierda y el ticket fijo a la derecha, con el total y el botón juntos. */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_25rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="grid grid-cols-1 gap-6 escritorio:grid-cols-[minmax(0,1fr)_25rem] escritorio:gap-10 xl:grid-cols-[minmax(0,1fr)_28rem]">
           <div className="min-w-0 space-y-6">
             <section className="space-y-3">
               <Paso n={1}>Quién</Paso>
@@ -230,7 +230,7 @@ export default function NuevaVenta() {
           {/* Simulación como ticket de caja. */}
           <section
             aria-labelledby="titulo-simulacion"
-            className="min-w-0 self-start rounded-sm border-y-[3px] border-dotted border-linea bg-white p-4 shadow lg:sticky lg:top-22 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:p-5"
+            className="min-w-0 self-start rounded-sm border-y-[3px] border-dotted border-linea bg-white p-4 shadow escritorio:sticky escritorio:top-22 escritorio:max-h-[calc(100dvh-7rem)] escritorio:overflow-y-auto escritorio:p-5"
           >
             <h2 id="titulo-simulacion" className="font-sans text-xs font-bold tracking-[0.12em] text-tinta-suave uppercase">
               Simulación{cliente && ` · ${cliente.nombre}`}
@@ -298,7 +298,7 @@ export default function NuevaVenta() {
               </div>
             )}
             {/* Escritorio: la acción va junto al total que confirma (en celular está en la barra inferior). */}
-            <div className="mt-4 hidden space-y-3 border-t border-papel-borde pt-4 lg:block">
+            <div className="mt-4 hidden space-y-3 border-t border-papel-borde pt-4 escritorio:block">
               {excede && <Alerta>La compra excede el crédito disponible del cliente.</Alerta>}
               <Boton type="submit" cargando={guardando} disabled={!simulacion || !!excede || !!cuotasInvalidas} className="w-full">
                 Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado, m)}`}
@@ -308,8 +308,8 @@ export default function NuevaVenta() {
         </div>
 
         {/* La barra fija debe ser hija directa del form (alto) para que el sticky funcione. */}
-        <div className="pt-6 pb-3 lg:hidden">{excede && <Alerta>La compra excede el crédito disponible del cliente.</Alerta>}</div>
-        <BarraAccion className="lg:hidden">
+        <div className="pt-6 pb-3 escritorio:hidden">{excede && <Alerta>La compra excede el crédito disponible del cliente.</Alerta>}</div>
+        <BarraAccion className="escritorio:hidden">
           <Boton type="submit" cargando={guardando} disabled={!simulacion || !!excede || !!cuotasInvalidas} className="w-full">
             Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado, m)}`}
           </Boton>

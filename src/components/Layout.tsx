@@ -57,7 +57,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
 const abrirAsistente = () => window.dispatchEvent(new CustomEvent('abrir-asistente'))
 
 const claseEnlace = ({ isActive }: { isActive: boolean }) =>
-  `inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-tinta hover:bg-papel-borde/60'}`
+  `inline-flex min-h-11 shrink-0 items-center rounded-full px-2.5 text-sm whitespace-nowrap lg:px-3 ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-tinta hover:bg-papel-borde/60'}`
 
 const claseInferior = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm whitespace-nowrap ${isActive ? 'bg-resaltador font-bold text-tinta' : 'text-papel-tenue'}`

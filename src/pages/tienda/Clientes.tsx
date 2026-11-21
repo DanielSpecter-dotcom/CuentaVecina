@@ -206,8 +206,8 @@ export default function Clientes() {
         <Vacio>{lista.length ? `Ningún cliente coincide con "${filtro}".` : 'Aún no hay clientes. Registra el primero con "+ Nuevo cliente".'}</Vacio>
       ) : (
         <>
-          {/* Celular: una ficha por cliente, con sus tasas siempre a la vista. */}
-          <ul className="space-y-3 sm:hidden">
+          {/* Celular y pantallas medianas: fichas (en 2 columnas desde 640 px); la tabla solo cuando entra completa. */}
+          <ul className="grid gap-3 sm:grid-cols-2 min-[75rem]:hidden">
             {visibles.map((c) => {
               const perfil = usuarios.find((u) => u.cliente_id === c.id)
               const m = c.moneda ? 'USD' : 'PEN'
@@ -257,7 +257,7 @@ export default function Clientes() {
             })}
           </ul>
 
-          <Tarjeta className="hidden sm:block">
+          <Tarjeta className="hidden min-[75rem]:block">
             <div className="overflow-x-auto">
               <table>
                 <thead>

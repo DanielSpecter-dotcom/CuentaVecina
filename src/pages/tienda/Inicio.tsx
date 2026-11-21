@@ -85,7 +85,7 @@ export default function Inicio() {
   const semana = parte({ weekday: 'long' })
   const etiquetaHoy = `${semana[0].toUpperCase()}${semana.slice(1)}, ${parte({ month: 'long' })} ${hoy.slice(0, 4)}`
   // En escritorio cada indicador va en su ficha.
-  const ficha = 'lg:rounded-2xl lg:border lg:border-papel-borde lg:bg-white lg:p-5'
+  const ficha = 'escritorio:rounded-2xl escritorio:border escritorio:border-papel-borde escritorio:bg-white escritorio:p-5'
 
   return (
     <div className="space-y-5">
@@ -98,7 +98,7 @@ export default function Inicio() {
       </header>
 
       {/* Celular: uno debajo del otro. Escritorio: tres fichas en fila (hoy, vencido, totales). */}
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-stretch">
+      <div className="flex flex-col gap-5 escritorio:grid escritorio:grid-cols-3 escritorio:items-stretch">
         <section aria-label="Cobros de hoy" className={`flex flex-col gap-2 ${ficha}`}>
           {deHoy.length > 0 ? (
             <>
@@ -136,23 +136,23 @@ export default function Inicio() {
             </div>
           </SelloVencido>
         ) : (
-          <div className={`hidden lg:flex lg:flex-col lg:justify-center ${ficha}`}>
+          <div className={`hidden escritorio:flex escritorio:flex-col escritorio:justify-center ${ficha}`}>
             <p className="text-xs font-bold tracking-[0.12em] text-pagado">AL DÍA</p>
             <p className="mt-1 font-display text-2xl font-extrabold">Sin pagos vencidos</p>
           </div>
         )}
 
-        <dl className={`flex flex-wrap gap-x-8 gap-y-2 lg:content-center ${ficha}`}>
+        <dl className={`flex flex-wrap gap-x-8 gap-y-2 escritorio:content-center ${ficha}`}>
           <div>
             <dt className="text-xs text-tinta-suave">Por cobrar</dt>
-            <dd className="text-lg font-bold tabular-nums lg:font-display lg:text-2xl lg:font-extrabold">
+            <dd className="text-lg font-bold tabular-nums escritorio:font-display escritorio:text-2xl escritorio:font-extrabold">
               {dinero(total.PEN)}
               {hayUsd && <span className="block">{dinero(total.USD, 'USD')}</span>}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-tinta-suave">Vecinos con cuenta</dt>
-            <dd className="text-lg font-bold tabular-nums lg:font-display lg:text-2xl lg:font-extrabold">{numClientes}</dd>
+            <dd className="text-lg font-bold tabular-nums escritorio:font-display escritorio:text-2xl escritorio:font-extrabold">{numClientes}</dd>
           </div>
         </dl>
       </div>

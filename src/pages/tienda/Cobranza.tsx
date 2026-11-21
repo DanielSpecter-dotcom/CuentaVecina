@@ -105,8 +105,8 @@ export default function Cobranza() {
       {aviso && <Alerta tipo="exito">{aviso}</Alerta>}
 
       {/* Escritorio: a la izquierda quién y qué período; a la derecha el listado con el total y el botón. */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-8 print:block">
-        <div className="no-imprimir min-w-0 space-y-5 lg:sticky lg:top-22">
+      <div className="grid grid-cols-1 gap-5 escritorio:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)] escritorio:items-start escritorio:gap-8 print:block">
+        <div className="no-imprimir min-w-0 space-y-5 escritorio:sticky escritorio:top-22">
           <div className="no-imprimir">
             {cliente ? (
               <div className="flex items-center gap-3 rounded-2xl border border-papel-borde bg-white p-3">
@@ -136,7 +136,7 @@ export default function Cobranza() {
               {periodos.length === 0 ? (
                 <Vacio>Sin deuda pendiente. 🎉</Vacio>
               ) : (
-                <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2 lg:mx-0 lg:max-h-[50dvh] lg:flex-col lg:gap-2 lg:overflow-y-auto lg:px-1 lg:pb-1">
+                <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2 escritorio:mx-0 escritorio:max-h-[50dvh] escritorio:flex-col escritorio:gap-2 escritorio:overflow-y-auto escritorio:px-1 escritorio:pb-1">
                   {periodos.map((p) => {
                     const vencido = p.fecha_pago < hoyLima()
                     const sel = p.fecha_pago === fechaPago
@@ -146,7 +146,7 @@ export default function Cobranza() {
                           type="button"
                           onClick={() => setFechaPago(p.fecha_pago)}
                           aria-pressed={sel}
-                          className={`flex w-44 flex-col items-start gap-1 rounded-xl bg-white p-3 text-left lg:grid lg:w-full lg:grid-cols-[1fr_auto] lg:items-center lg:gap-x-3 ${
+                          className={`flex w-44 flex-col items-start gap-1 rounded-xl bg-white p-3 text-left escritorio:grid escritorio:w-full escritorio:grid-cols-[1fr_auto] escritorio:items-center escritorio:gap-x-3 ${
                             sel
                               ? vencido
                                 ? 'border-2 border-vencido shadow-[3px_3px_0_var(--color-vencido)]'
@@ -181,7 +181,7 @@ export default function Cobranza() {
 
         <div className="min-w-0 space-y-5">
           {!clienteId && (
-            <p className="hidden rounded-2xl border-[1.5px] border-dashed border-linea p-8 text-center text-sm text-tinta-suave lg:block">
+            <p className="hidden rounded-2xl border-[1.5px] border-dashed border-linea p-8 text-center text-sm text-tinta-suave escritorio:block">
               Elige un cliente para ver su listado de pago.
             </p>
           )}
@@ -192,14 +192,14 @@ export default function Cobranza() {
                 <h2 className="mb-4 hidden font-display text-lg font-bold sm:block print:block">Listado de pago</h2>
                 <EstadoCuentaVista ec={ec} tienda={tienda?.nombre_comercial} />
                 {/* Escritorio: la acción va junto al total; en celular está en la barra inferior. */}
-                <div className="no-imprimir mt-5 hidden items-center justify-end gap-4 border-t border-papel-borde pt-4 lg:flex">
+                <div className="no-imprimir mt-5 hidden items-center justify-end gap-4 border-t border-papel-borde pt-4 escritorio:flex">
                   {!esMasAntiguo && <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>}
                   <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo}>
                     Registrar pago total de {dinero(ec.total, m)}
                   </Boton>
                 </div>
               </section>
-              <BarraAccion className="lg:hidden">
+              <BarraAccion className="escritorio:hidden">
                 <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo} className="w-full">
                   Registrar pago total de {dinero(ec.total, m)}
                 </Boton>

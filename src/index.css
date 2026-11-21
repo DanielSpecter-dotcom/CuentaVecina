@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  /* Escritorio desde 960 px: incluye laptops con zoom de Windows al 125 % y el panel lateral del navegador. */
+  --breakpoint-escritorio: 60rem;
   /* Atkinson Hyperlegible: diseñada para baja visión — muchos vecinos y bodegueros leen en celulares viejos. */
   --font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Bricolage Grotesque: aire de letrero pintado a mano de bodega, solo para títulos. */

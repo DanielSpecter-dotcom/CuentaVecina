@@ -88,8 +88,8 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
           <tbody>
             {ec.items.map((it) => (
               <tr key={(it.cuota_id ?? it.venta_id) + it.tipo}>
-                <td>{formatearFecha(it.fecha_compra)}</td>
-                <td>
+                <td className="whitespace-nowrap">{formatearFecha(it.fecha_compra)}</td>
+                <td className="min-w-36">
                   {it.descripcion} {it.tipo === 'CUOTA' && <Etiqueta color="azul">cuota</Etiqueta>}
                 </td>
                 <td className="text-right">{it.dias ?? '—'}</td>

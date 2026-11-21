@@ -76,10 +76,10 @@ export default function Bcrp() {
       {error && <Alerta>{error}</Alerta>}
 
       {/* Escritorio: el formulario angosto a la izquierda y el historial a la derecha. */}
-      <div className="space-y-4 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-8 lg:space-y-0">
-        <form onSubmit={guardar} className="space-y-4 lg:rounded-2xl lg:border lg:border-papel-borde lg:bg-white lg:p-5">
+      <div className="space-y-4 escritorio:grid escritorio:grid-cols-[22rem_minmax(0,1fr)] escritorio:items-start escritorio:gap-8 escritorio:space-y-0">
+        <form onSubmit={guardar} className="space-y-4 escritorio:rounded-2xl escritorio:border escritorio:border-papel-borde escritorio:bg-white escritorio:p-5">
           <h2 className="text-lg font-bold">Nuevo registro</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="grid gap-4 sm:grid-cols-2 escritorio:grid-cols-1">
             <Campo etiqueta="TEA máx. soles (%)" ayuda="Tasa efectiva anual máxima en moneda nacional, en porcentaje (p. ej. 99.5).">
               <input type="number" step="0.0000001" min="0" value={f.tasa_max_pen} onChange={set('tasa_max_pen')} required />
             </Campo>
@@ -94,8 +94,8 @@ export default function Bcrp() {
             </Campo>
           </div>
           <p className="text-xs text-tinta-suave">La tasa moratoria máxima se calcula como el 15 % de la compensatoria.</p>
-          <BarraAccion className="lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0">
-            <Boton type="submit" cargando={guardando} className="w-full sm:w-auto lg:w-full">
+          <BarraAccion className="escritorio:static escritorio:mx-0 escritorio:border-0 escritorio:bg-transparent escritorio:px-0">
+            <Boton type="submit" cargando={guardando} className="w-full sm:w-auto escritorio:w-full">
               Guardar
             </Boton>
           </BarraAccion>

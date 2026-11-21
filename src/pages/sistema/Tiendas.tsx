@@ -122,7 +122,7 @@ export default function Tiendas() {
       ) : (
         <>
           {/* Celular y tablet: una ficha por tienda. */}
-          <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
+          <ul className="grid gap-3 md:grid-cols-2 escritorio:hidden">
             {tiendas.map((t) => {
               const suyos = admins.filter((a) => a.tienda_id === t.id)
               return (
@@ -181,7 +181,7 @@ export default function Tiendas() {
           </ul>
 
           {/* Escritorio: tabla compacta, más fácil de recorrer con muchas tiendas. */}
-          <Tarjeta className="hidden lg:block">
+          <Tarjeta className="hidden escritorio:block">
             <div className="overflow-x-auto">
               <table>
                 <thead>
