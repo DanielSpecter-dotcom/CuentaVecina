@@ -1,10 +1,12 @@
 // Piezas del rediseño "Cuaderno": hoja con renglones de 56 px, sellos, controles táctiles grandes.
-import { useState, type ReactNode } from 'react'
+import { History, Minus, Plus } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { describirTasa, moneda } from '../lib/codigos'
 import { formatearFecha } from '../lib/fechas'
 import { dinero } from '../lib/formato'
 import type { Cliente } from '../types'
+import { Buscador, useRecientes } from './Buscador'
 import { Campo, Dato } from './ui'
 
 /** Props que Campo inyecta a su control (id, ayuda y error). */
@@ -254,11 +256,11 @@ export function SelectorNumero({ etiqueta, max, valor, onChange, ...control }: {
 /** − n +: cantidad con botones de 44 px. El valor sigue siendo un texto (como el input original). */
 export function Stepper({ etiqueta, valor, onChange, min = 1, ...control }: { etiqueta: string; valor: string; onChange: (v: string) => void; min?: number } & Control) {
   const n = Number(valor) || 0
-  const boton = 'h-11 w-11 shrink-0 rounded-lg text-xl font-bold hover:bg-papel-borde/60 disabled:opacity-40'
+  const boton = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-papel-borde/60 disabled:opacity-40'
   return (
     <div className="flex h-12 w-fit items-center rounded-xl border-[1.5px] border-tinta bg-white focus-within:ring-2 focus-within:ring-resaltador">
       <button type="button" className={boton} aria-label={`Restar ${etiqueta.toLowerCase()}`} disabled={n <= min} onClick={() => onChange(String(Math.max(min, n - 1)))}>
-        −
+        <Minus aria-hidden="true" className="mx-auto size-5" strokeWidth={2.5} />
       </button>
       <input
         type="number"
@@ -270,7 +272,7 @@ export function Stepper({ etiqueta, valor, onChange, min = 1, ...control }: { et
         className="h-11 min-h-0 w-14 rounded-none border-0 px-0 text-center font-bold focus:ring-0"
       />
       <button type="button" className={boton} aria-label={`Sumar ${etiqueta.toLowerCase()}`} onClick={() => onChange(String(n + 1))}>
-        +
+        <Plus aria-hidden="true" className="mx-auto size-5" strokeWidth={2.5} />
       </button>
     </div>
   )
@@ -306,52 +308,88 @@ function iniciales(nombre: string): string {
   return ((p[0]?.[0] ?? '') + (p.length > 1 ? p[1][0] : '')).toUpperCase()
 }
 
-export function Avatar({ nombre, activo = true }: { nombre: string; activo?: boolean }) {
+export function Avatar({ nombre, activo = true, chico }: { nombre: string; activo?: boolean; chico?: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold ${activo ? 'bg-tinta text-resaltador' : 'bg-papel-borde text-tinta'}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${chico ? 'h-8 w-8 text-xs' : 'h-11 w-11'} ${activo ? 'bg-tinta text-resaltador' : 'bg-papel-borde text-tinta'}`}
     >
       {iniciales(nombre)}
     </span>
   )
 }
 
-/** Buscador + fila deslizable de avatares para elegir cliente (Nueva venta y Cobranza). */
-export function SelectorCliente({ clientes, valor, onChange, ayuda }: { clientes: Cliente[]; valor: string; onChange: (id: string) => void; ayuda: string }) {
-  const [busqueda, setBusqueda] = useState('')
-  const t = busqueda.trim().toLowerCase()
-  const elegido = clientes.find((c) => c.id === valor)
-  let lista = t ? clientes.filter((c) => `${c.nombre} ${c.documento}`.toLowerCase().includes(t)) : clientes.slice(0, 8)
-  if (elegido && !lista.includes(elegido)) lista = [elegido, ...lista]
+/** Buscador desplegable de clientes y, debajo, los recientes de este dispositivo (Nueva venta y Cobranza). */
+export function SelectorCliente({
+  clientes,
+  valor,
+  onChange,
+  ayuda,
+  recientes: clave,
+}: {
+  clientes: Cliente[]
+  valor: string
+  onChange: (id: string) => void
+  ayuda: string
+  /** Clave de localStorage de los recientes (incluye la tienda). */
+  recientes: string
+}) {
+  const { ids, registrar } = useRecientes(clave)
+  const elegir = (id: string) => {
+    registrar(id)
+    onChange(id)
+  }
+  const porId = new Map(clientes.map((c) => [c.id, c]))
+  const recientes = ids.map((id) => porId.get(id)).filter((c): c is Cliente => !!c)
+  // Sin historial todavía: los primeros de la lista como sugerencia.
+  const fila = recientes.length > 0 ? recientes : clientes.slice(0, 6)
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Campo etiqueta="Cliente" ayuda={ayuda}>
-        <input type="search" placeholder="Buscar por nombre o DNI…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        <Buscador
+          placeholder="Buscar por nombre o DNI…"
+          vacio="Ningún cliente coincide."
+          valor={valor}
+          onChange={elegir}
+          opciones={clientes.map((c) => ({
+            id: c.id,
+            titulo: c.nombre,
+            detalle: `DNI ${c.documento}`,
+            busqueda: `${c.nombre} ${c.documento}`,
+            inicio: <Avatar nombre={c.nombre} activo={c.id === valor} chico />,
+          }))}
+        />
       </Campo>
-      <ul aria-label="Clientes" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {lista.map((c) => (
-          <li key={c.id} className="shrink-0">
-            <button
-              type="button"
-              aria-pressed={c.id === valor}
-              onClick={() => onChange(c.id)}
-              className={`flex w-18 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-xs ${c.id === valor ? 'bg-resaltador-suave font-bold' : ''}`}
-            >
-              <Avatar nombre={c.nombre} activo={c.id === valor} />
-              {/* Nombre accesible = nombre visible + resto (WCAG 2.5.3: la etiqueta visible va dentro del nombre). */}
-              <span className="w-full truncate text-center">
-                {c.nombre.split(' ')[0]}
-                <span className="sr-only">
-                  {' '}
-                  {c.nombre.split(' ').slice(1).join(' ')} — DNI {c.documento}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-        {lista.length === 0 && <li className="py-3 text-sm text-tinta-suave">Ningún cliente coincide con "{busqueda}".</li>}
-      </ul>
+      {fila.length > 0 && (
+        <div>
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-tinta-suave">
+            <History aria-hidden="true" className="size-3.5" />
+            {recientes.length > 0 ? 'Recientes' : 'Sugeridos'}
+          </p>
+          <ul aria-label={recientes.length > 0 ? 'Clientes recientes' : 'Clientes sugeridos'} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {fila.map((c) => (
+              <li key={c.id} className="shrink-0">
+                <button
+                  type="button"
+                  aria-pressed={c.id === valor}
+                  onClick={() => elegir(c.id)}
+                  className={`flex w-18 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-xs ${c.id === valor ? 'bg-resaltador-suave font-bold' : 'hover:bg-papel-borde/50'}`}
+                >
+                  <Avatar nombre={c.nombre} activo={c.id === valor} />
+                  {/* Nombre accesible = nombre visible + resto (WCAG 2.5.3: la etiqueta visible va dentro del nombre). */}
+                  <span className="w-full truncate text-center">
+                    {c.nombre.split(' ')[0]}
+                    <span className="sr-only">
+                      {' '}
+                      {c.nombre.split(' ').slice(1).join(' ')} — DNI {c.documento}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

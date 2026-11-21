@@ -124,7 +124,13 @@ export default function Cobranza() {
                 </button>
               </div>
             ) : (
-              <SelectorCliente clientes={clientes} valor={clienteId} onChange={elegirCliente} ayuda="Elige al cliente para ver sus períodos con deuda." />
+              <SelectorCliente
+                clientes={clientes}
+                valor={clienteId}
+                onChange={elegirCliente}
+                ayuda="Elige al cliente para ver sus períodos con deuda."
+                recientes={`cv-recientes-clientes-${tienda?.id ?? ''}`}
+              />
             )}
           </div>
 
@@ -134,7 +140,7 @@ export default function Cobranza() {
                 Períodos pendientes
               </h2>
               {periodos.length === 0 ? (
-                <Vacio>Sin deuda pendiente. 🎉</Vacio>
+                <Vacio>Sin deuda pendiente.</Vacio>
               ) : (
                 <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2 escritorio:mx-0 escritorio:max-h-[50dvh] escritorio:flex-col escritorio:gap-2 escritorio:overflow-y-auto escritorio:px-1 escritorio:pb-1">
                   {periodos.map((p) => {

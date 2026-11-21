@@ -1,5 +1,7 @@
+import { History } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { Buscador, useRecientes } from '../../components/Buscador'
 import { BarraAccion, Chips, Condiciones, Paso, Segmentado, SelectorCliente, SelectorNumero, Stepper } from '../../components/cuaderno'
 import { Cronograma } from '../../components/Cronograma'
 import { Alerta, Boton, Campo, Etiqueta } from '../../components/ui'
@@ -26,7 +28,7 @@ function FilaTicket({ etiqueta, children }: { etiqueta: ReactNode; children: Rea
   )
 }
 
-const PRODUCTOS_A_LA_VISTA = 6
+const PRODUCTOS_SUGERIDOS = 6
 
 export default function NuevaVenta() {
   const { tienda } = useAuth()
@@ -42,10 +44,9 @@ export default function NuevaVenta() {
   const [error, setError] = useState<string | null>(null)
   const [registrada, setRegistrada] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
-  // Solo interfaz: filtro de productos y despliegues.
-  const [filtroProducto, setFiltroProducto] = useState('')
-  const [verTodos, setVerTodos] = useState(false)
+  // Solo interfaz: despliegue del cronograma y productos recientes de este dispositivo.
   const [verCronograma, setVerCronograma] = useState(false)
+  const { ids: idsProductos, registrar: registrarProducto } = useRecientes(`cv-recientes-productos-${tienda?.id ?? ''}`)
 
   useEffect(() => {
     supabase.from('clientes').select('*').eq('estado', true).order('nombre').then(({ data }) => setClientes((data as Cliente[]) ?? []))
@@ -115,12 +116,13 @@ export default function NuevaVenta() {
     setFechaHora(ahoraLocal())
   }
 
-  // Chips de productos: los primeros, los que coinciden con el filtro o todos; el elegido siempre a la vista.
-  const t = filtroProducto.trim().toLowerCase()
-  const coinciden = t ? productos.filter((p) => `${p.nombre} ${p.marca ?? ''}`.toLowerCase().includes(t)) : productos
-  let visibles = t || verTodos ? coinciden : coinciden.slice(0, PRODUCTOS_A_LA_VISTA)
-  if (producto && !visibles.includes(producto)) visibles = [producto, ...visibles]
-  const ocultos = coinciden.length - visibles.length
+  // Debajo del buscador: los productos recientes (o los primeros, si aún no hay historial).
+  const productosRecientes = idsProductos.map((id) => productos.find((p) => p.id === id)).filter((p): p is Producto => !!p)
+  const filaProductos = productosRecientes.length > 0 ? productosRecientes : productos.slice(0, PRODUCTOS_SUGERIDOS)
+  function elegirProducto(id: string) {
+    registrarProducto(id)
+    setProductoId(id)
+  }
 
   const totalSimulado = simulacion ? (simulacion.modalidad === 'FIN_DE_MES' ? simulacion.total : simulacion.totalPagar) : null
 
@@ -154,35 +156,48 @@ export default function NuevaVenta() {
                   setRegistrada(null)
                 }}
                 ayuda="Solo aparecen clientes activos. Sus condiciones de crédito (tasa, corte y pago) se copian a la venta."
+                recientes={`cv-recientes-clientes-${tienda?.id ?? ''}`}
               />
               {cliente && <Condiciones cliente={cliente} disponible={disponible} />}
             </section>
 
             <section className="space-y-3">
               <Paso n={2}>Qué</Paso>
-              <Campo etiqueta="Producto o servicio" ayuda="Se cobra al precio de lista (crédito).">
-                <input type="search" placeholder="Filtrar productos…" value={filtroProducto} onChange={(e) => setFiltroProducto(e.target.value)} />
+              <Campo etiqueta="Producto o servicio" ayuda="Se cobra al precio de lista (crédito). Escribe para buscar por nombre o marca.">
+                <Buscador
+                  placeholder="Buscar producto o marca…"
+                  vacio="Ningún producto coincide."
+                  valor={productoId}
+                  onChange={elegirProducto}
+                  opciones={productos.map((p) => ({
+                    id: p.id,
+                    titulo: p.nombre,
+                    detalle: `${dinero(p.precio_lista)} a crédito${p.marca ? ` · ${p.marca}` : ''}`,
+                    busqueda: `${p.nombre} ${p.marca ?? ''}`,
+                  }))}
+                />
               </Campo>
-              <Chips
-                etiqueta="Productos"
-                opciones={visibles.map((p) => ({
-                  valor: p.id,
-                  texto: (
-                    <>
-                      {p.nombre} · <span className="tabular-nums">{dinero(p.precio_lista)}</span>
-                    </>
-                  ),
-                }))}
-                valor={productoId}
-                onChange={setProductoId}
-              >
-                {ocultos > 0 && (
-                  <button type="button" onClick={() => setVerTodos(true)} className="min-h-11 rounded-full px-3.5 text-sm font-bold underline underline-offset-4">
-                    Ver todos… (+{ocultos})
-                  </button>
-                )}
-              </Chips>
-              {productos.length > 0 && coinciden.length === 0 && <p className="text-sm text-tinta-suave">Ningún producto coincide con "{filtroProducto}".</p>}
+              {filaProductos.length > 0 && (
+                <div>
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-tinta-suave">
+                    <History aria-hidden="true" className="size-3.5" />
+                    {productosRecientes.length > 0 ? 'Recientes' : 'Sugeridos'}
+                  </p>
+                  <Chips
+                    etiqueta={productosRecientes.length > 0 ? 'Productos recientes' : 'Productos sugeridos'}
+                    opciones={filaProductos.map((p) => ({
+                      valor: p.id,
+                      texto: (
+                        <>
+                          {p.nombre} · <span className="tabular-nums">{dinero(p.precio_lista)}</span>
+                        </>
+                      ),
+                    }))}
+                    valor={productoId}
+                    onChange={elegirProducto}
+                  />
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
                 <Campo etiqueta="Cantidad" ayuda="Número de unidades.">
                   <Stepper etiqueta="Cantidad" valor={cantidad} onChange={setCantidad} />
