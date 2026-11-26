@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { aTasa, moneda as aMoneda } from '../../lib/codigos'
 import { fechaHoraLima, formatearFecha } from '../../lib/fechas'
 import { dinero, tasaPct } from '../../lib/formato'
-import { r2, simularCuotas, simularFinDeMes, type CondicionesCredito } from '../../lib/motorFinanciero'
+import { pagoMesSiguiente, r2, simularCuotas, simularFinDeMes, type CondicionesCredito } from '../../lib/motorFinanciero'
 import { mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Producto } from '../../types'
 
@@ -225,7 +225,7 @@ export default function NuevaVenta() {
                     {
                       valor: 'F',
                       titulo: 'Fin de mes',
-                      detalle: simulacion ? `Un pago el ${formatearFecha(simulacion.fechaPago)}` : cliente ? `Un pago el día ${cliente.dia_pago}` : 'Un solo pago',
+                      detalle: simulacion ? `Un pago el ${formatearFecha(simulacion.fechaPago)}` : cliente ? `Un pago el día ${cliente.dia_pago}${pagoMesSiguiente(cliente.dia_corte, cliente.dia_pago) ? ' del mes siguiente' : ''}` : 'Un solo pago',
                       deshabilitado: producto?.modalidad_venta === 1,
                     },
                     {

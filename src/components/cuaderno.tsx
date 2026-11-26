@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { describirTasa, moneda } from '../lib/codigos'
 import { formatearFecha } from '../lib/fechas'
 import { dinero } from '../lib/formato'
+import { textoCortePago } from '../lib/motorFinanciero'
 import type { Cliente } from '../types'
 import { Buscador, useRecientes } from './Buscador'
 import { Campo, Dato } from './ui'
@@ -138,7 +139,7 @@ export function Condiciones({ cliente, disponible, deuda }: { cliente: Cliente; 
           etiqueta="Tasa moratoria"
           valor={describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
         />
-        <Dato etiqueta="Corte / pago" valor={`día ${cliente.dia_corte} / día ${cliente.dia_pago}`} />
+        <Dato etiqueta="Corte / pago" valor={textoCortePago(cliente.dia_corte, cliente.dia_pago)} />
         {disponible !== undefined && <Dato etiqueta="Disponible" valor={disponible == null ? '…' : dinero(disponible, m)} />}
         {deuda !== undefined && <Dato etiqueta="Deuda vigente (capital)" valor={deuda == null ? '…' : dinero(deuda, m)} />}
       </dl>

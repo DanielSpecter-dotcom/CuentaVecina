@@ -9,6 +9,7 @@ import {
   simularCuotas,
   simularFinDeMes,
   tasaEfectivaPeriodo,
+  textoCortePago,
   type CondicionesCredito,
 } from './motorFinanciero'
 
@@ -181,4 +182,35 @@ describe('cuota francesa igual en todas las cuotas', () => {
       })
     }
   }
+})
+
+describe('pago al mes siguiente del corte (corte 10, pago 5)', () => {
+  it('compra antes del corte: corte 10/11, pago 05/12', () => {
+    expect(determinarCiclo('2026-11-03', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2026-11-10', fechaPago: '2026-12-05', trasladada: false })
+  })
+  it('compra después del corte: corte 10/12, pago 05/01 del año siguiente', () => {
+    expect(determinarCiclo('2026-11-25', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2026-12-10', fechaPago: '2027-01-05', trasladada: true })
+  })
+  it('compra en diciembre después del corte: corte 10/01, pago 05/02', () => {
+    expect(determinarCiclo('2026-12-15', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2027-01-10', fechaPago: '2027-02-05', trasladada: true })
+  })
+  it('día de pago igual al de corte: un mes después', () => {
+    expect(determinarCiclo('2026-11-03', '10:00:00', 10, 10).fechaPago).toBe('2026-12-10')
+  })
+  it('fin de mes: intereses por los días de la compra al pago (03/11 → 05/12 = 32 días)', () => {
+    const c: CondicionesCredito = { ...tea30, diaCorte: 10, diaPago: 5 }
+    const r = simularFinDeMes(100, '2026-11-03', '10:00:00', c)
+    expect(r.dias).toBe(32)
+    expect(r.fechaPago).toBe('2026-12-05')
+  })
+  it('cuotas: gracia hasta el pago y cuotas el 5 de cada mes siguiente', () => {
+    const c: CondicionesCredito = { ...tea30, diaCorte: 10, diaPago: 5 }
+    const r = simularCuotas(300, 3, '2026-11-03', '10:00:00', c)
+    expect(r.diasGracia).toBe(32)
+    expect(r.cronograma.map((f) => f.fechaVencimiento)).toEqual(['2027-01-05', '2027-02-05', '2027-03-05'])
+  })
+  it('texto de las condiciones', () => {
+    expect(textoCortePago(20, 26)).toBe('día 20 / día 26')
+    expect(textoCortePago(10, 5)).toBe('día 10 / día 5 del mes siguiente')
+  })
 })

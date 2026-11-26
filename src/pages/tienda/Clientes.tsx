@@ -7,6 +7,7 @@ import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio }
 import { useAuth } from '../../context/AuthContext'
 import { describirTasa } from '../../lib/codigos'
 import { dinero } from '../../lib/formato'
+import { pagoMesSiguiente, textoCortePago } from '../../lib/motorFinanciero'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Perfil } from '../../types'
 
@@ -91,7 +92,6 @@ export default function Clientes() {
     e.preventDefault()
     if (!form || !tienda) return
     setError(null)
-    if (Number(form.dia_pago) <= Number(form.dia_corte)) return setError('El día de pago debe ser posterior al día de corte.')
     setGuardando(true)
     const fila = {
       tienda_id: tienda.id,
@@ -244,7 +244,7 @@ export default function Clientes() {
                         </>
                       }
                     />
-                    <Dato etiqueta="Corte / pago" valor={`día ${c.dia_corte} / día ${c.dia_pago}`} />
+                    <Dato etiqueta="Corte / pago" valor={textoCortePago(c.dia_corte, c.dia_pago)} />
                   </dl>
                   <div className="mt-3 border-t border-dashed border-papel-borde pt-1 text-sm">{usuarioDe(c, perfil)}</div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -300,6 +300,7 @@ export default function Clientes() {
                           <div className="text-xs text-tinta-suave">hasta {c.plazo_max_meses} cuotas</div>
                           <div className="text-xs text-tinta-suave">
                             corte día {c.dia_corte} · pago día {c.dia_pago}
+                            {pagoMesSiguiente(c.dia_corte, c.dia_pago) && ' del mes siguiente'}
                           </div>
                         </td>
                         <td className="text-xs">{usuarioDe(c, perfil, true)}</td>
@@ -390,8 +391,8 @@ export default function Clientes() {
                 <Campo etiqueta="Día de corte" ayuda="Día del mes (1 a 28) en que se cierra el ciclo. Compras posteriores pasan al mes siguiente.">
                   <input type="number" min={1} max={28} value={form.dia_corte} onChange={set('dia_corte')} required />
                 </Campo>
-                <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28, mayor que el día de corte) en que el cliente se compromete a pagar.">
-                  <input type="number" min={2} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
+                <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28) en que el cliente se compromete a pagar. Si es menor o igual al día de corte (p. ej. corte 10, pago 5), el pago cae en el mes siguiente al corte.">
+                  <input type="number" min={1} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
                 </Campo>
               </div>
             </section>

@@ -67,10 +67,21 @@ export interface Ciclo {
   trasladada: boolean
 }
 
+/** true si la fecha de pago cae en el mes siguiente al corte (día de pago ≤ día de corte, p. ej. corte 10 y pago 5). */
+export function pagoMesSiguiente(diaCorte: number, diaPago: number): boolean {
+  return diaPago <= diaCorte
+}
+
+/** "día 20 / día 26" o, si el pago es al mes siguiente, "día 10 / día 5 del mes siguiente". */
+export function textoCortePago(diaCorte: number, diaPago: number): string {
+  return `día ${diaCorte} / día ${diaPago}${pagoMesSiguiente(diaCorte, diaPago) ? ' del mes siguiente' : ''}`
+}
+
 /**
  * Determina a qué ciclo de facturación pertenece una compra.
- * Si la compra es antes (o en) la fecha y hora de corte del mes, se paga en la fecha de pago de ese mes;
- * si es posterior, su obligación pasa al mes inmediatamente siguiente.
+ * Si la compra es antes (o en) la fecha y hora de corte del mes, entra al corte de ese mes; si es posterior,
+ * pasa al corte del mes inmediatamente siguiente. La fecha de pago es el día de pago del mismo mes del corte
+ * o, si el día de pago es menor o igual al de corte (corte 10, pago 5), el del mes siguiente al corte.
  */
 export function determinarCiclo(
   fechaCompra: string,
@@ -84,7 +95,7 @@ export function determinarCiclo(
   const mes = antesDelCorte ? m : m + 1
   return {
     fechaCorte: fechaDelMes(y, mes, diaCorte),
-    fechaPago: fechaDelMes(y, mes, diaPago),
+    fechaPago: fechaDelMes(y, mes + (pagoMesSiguiente(diaCorte, diaPago) ? 1 : 0), diaPago),
     trasladada: !antesDelCorte,
   }
 }
