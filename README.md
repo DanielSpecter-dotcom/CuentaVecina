@@ -34,6 +34,9 @@ Desde ahí, todo se crea desde la app (sin correos): el admin del sistema da de 
 y les genera usuario (su DNI).
 
 **Ruta de prueba en vivo:** [`docs/RUTA_DE_PRUEBA.md`](docs/RUTA_DE_PRUEBA.md) (también en la pantalla *Ayuda*).
+
+**Fórmulas (para la exposición):** [`FORMULAS.md`](FORMULAS.md): cada fórmula, su lógica, dónde está en el código
+(TypeScript y SQL), dónde se ve en la app y un ejemplo numérico. También en *Ayuda → Fórmulas del sistema*.
 Para empezar de cero antes de una demo: `supabase/scripts/reiniciar_demo.sql` (**borra todos los datos**).
 
 ## 3. PWA y notificaciones
@@ -95,6 +98,8 @@ supabase/
   migrations/007_*.sql        Fecha de pago en el mes siguiente al corte (p. ej. corte 10, pago 5)
   migrations/008_*.sql        Solo soles (moneda del crédito fija en S/)
   migrations/009_*.sql        Listado de pago generado en la fecha de corte
+  migrations/010_*.sql        Motor financiero ordenado y documentado (tasas, ciclo, cuota francesa, simulación)
+  migrations/011_*.sql        Listado de pago, mora y registro del pago documentados
   scripts/reiniciar_demo.sql  Deja la base en blanco para una demo (BORRA TODO)
   functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
   functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves

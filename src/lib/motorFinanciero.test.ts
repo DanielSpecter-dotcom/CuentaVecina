@@ -1,17 +1,20 @@
-// Juegos de datos de prueba del motor financiero.
+// Pruebas del motor financiero (src/lib/motorFinanciero.ts), en el mismo orden que sus secciones:
+// §0 redondeo · §1 tasas · §2 ciclo · §3 fin de mes · §4 cuotas · §5 mora.
 // Los valores esperados se calcularon de forma independiente (Python, Decimal de 40 dígitos).
+// Los "Juegos de datos" 1 y 2 son los del informe (enunciado, sección 6.d).
 import { describe, expect, it } from 'vitest'
 import {
   calcularMora,
+  teaEquivalente,
   determinarCiclo,
   r2,
   cuotaFrancesa,
   simularCuotas,
   simularFinDeMes,
   tasaEfectivaPeriodo,
-  textoCortePago,
   type CondicionesCredito,
 } from './motorFinanciero'
+import { textoCortePago } from './formato'
 
 const tea30: CondicionesCredito = {
   tasa: { tipo: 'EFECTIVA', valor: 30, periodoDias: 360 },
@@ -39,6 +42,12 @@ describe('conversión de tasas', () => {
   })
   it('TNA 24 % cap. diaria → TEP 21 días', () => {
     expect(tasaEfectivaPeriodo(tna24.tasa, 21)).toBeCloseTo(0.0140937286, 9)
+  })
+  it('TNA 24 % cap. diaria → TEA equivalente (para el tope BCRP)', () => {
+    expect(teaEquivalente(tna24.tasa)).toBeCloseTo(0.2711474996, 9)
+  })
+  it('0 días → TEP 0', () => {
+    expect(tasaEfectivaPeriodo(tea30.tasa, 0)).toBe(0)
   })
 })
 

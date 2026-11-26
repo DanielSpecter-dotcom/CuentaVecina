@@ -1,3 +1,5 @@
+import { pagoMesSiguiente } from './motorFinanciero'
+
 /** Todos los montos de la app están en soles (S/). */
 const soles = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 })
 
@@ -10,4 +12,9 @@ export function dinero(monto: number | string | null | undefined): string {
 export function tasaPct(fraccion: number | null | undefined, decimales = 7): string {
   if (fraccion == null) return '—'
   return `${(Number(fraccion) * 100).toFixed(decimales)} %`
+}
+
+/** Condiciones de corte y pago: "día 20 / día 26" o "día 10 / día 5 del mes siguiente". */
+export function textoCortePago(diaCorte: number, diaPago: number): string {
+  return `día ${diaCorte} / día ${diaPago}${pagoMesSiguiente(diaCorte, diaPago) ? ' del mes siguiente' : ''}`
 }

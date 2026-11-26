@@ -1,5 +1,6 @@
 import { CircleHelp } from 'lucide-react'
 import { Hoja, RenglonTitulo } from '../components/cuaderno'
+import { Formulas } from '../components/Formulas'
 import { Tarjeta } from '../components/ui'
 
 // Copiadas en supabase/functions/asistente/index.ts (AYUDA): si cambian aquí, actualizar allá.
@@ -10,7 +11,7 @@ const PREGUNTAS = [
   },
   {
     p: '¿Cómo se calculan los intereses de una compra a fin de mes?',
-    r: 'Con la tasa pactada (nominal o efectiva) por los días transcurridos entre la fecha de compra y la fecha de pago: Interés = Capital \u00d7 [(1 + TEP) − 1], donde TEP es la tasa efectiva del período de días. Año comercial de 360 días.',
+    r: 'Con la tasa pactada (nominal o efectiva) por los días transcurridos entre la fecha de compra y la fecha de pago: Interés = Capital \u00d7 TEP, donde TEP es la tasa efectiva para esos días. Año comercial de 360 días.',
   },
   {
     p: '¿Cómo funcionan las compras en cuotas?',
@@ -61,7 +62,7 @@ const RUTA = [
 const PREGUNTAS_AVISOS = [
   {
     p: '¿Qué avisos envía la app?',
-    r: 'Al cliente: cada compra registrada, cada pago recibido, recordatorios 3 días antes, 1 día antes y el día de pago, y avisos de pago vencido. Al administrador del negocio: un resumen diario de lo que vence hoy y lo vencido. Los recordatorios se generan todos los días a las 8:00 a. m.',
+    r: 'Al cliente: cada compra registrada, cada pago recibido, su listado de pago al cerrarse el corte, recordatorios 3 días antes, 1 día antes y el día de pago, y avisos de pago vencido. Al administrador del negocio: el resumen de cada corte cerrado y un resumen diario de lo que vence hoy y lo vencido. Los recordatorios se generan todos los días a las 8:00 a. m.',
   },
   {
     p: '¿Cómo recibo los avisos en el celular?',
@@ -132,6 +133,17 @@ export default function Ayuda() {
       <section className="space-y-2">
         <h2 className="text-lg font-bold">Preguntas frecuentes</h2>
         <Preguntas lista={PREGUNTAS} />
+      </section>
+
+      <section aria-labelledby="formulas" className="space-y-2">
+        <h2 id="formulas" className="text-lg font-bold">
+          Fórmulas del sistema
+        </h2>
+        <p className="text-sm text-tinta-suave">
+          Año comercial de 360 días y mes de 30. Las tasas se calculan sin redondear (se muestran con 7 decimales) y los montos se
+          redondean a 2 decimales.
+        </p>
+        <Formulas />
       </section>
 
       <Tarjeta titulo="Soporte técnico">

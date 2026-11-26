@@ -20,7 +20,7 @@ function hoyLima(): string {
 // Mismo contenido que src/pages/Ayuda.tsx: si cambia uno, actualizar el otro.
 const AYUDA = `
 - Mes de pago: cada cliente tiene un día de corte y un día de pago. Las compras hechas hasta la fecha y hora de corte entran a ese corte; las posteriores pasan al corte del mes siguiente. El pago vence el día de pago del mismo mes del corte o, si el día de pago es menor o igual al de corte (p. ej. corte 10 y pago 5), en el mes siguiente. Al cerrarse el corte, el sistema genera el listado de pago de cada cliente y se lo avisa (también a la tienda).
-- Intereses de una compra a fin de mes: tasa pactada (nominal o efectiva) por los días entre la compra y la fecha de pago. Interés = Capital × [(1 + TEP) − 1], TEP = tasa efectiva del período de días. Año comercial de 360 días.
+- Intereses de una compra a fin de mes: tasa pactada (nominal o efectiva) por los días entre la compra y la fecha de pago. Interés = Capital × TEP, TEP = tasa efectiva para esos días. Año comercial de 360 días.
 - Compras en cuotas: método francés vencido simple ordinario (meses de 30 días). Desde la compra hasta la fecha de pago del ciclo hay período de gracia total: esos intereses se capitalizan y luego se calcula la cuota constante. Las cuotas vencen en la fecha de pago de los meses siguientes.
 - Pago tarde: se agrega "Intereses por mora": la tasa moratoria pactada sobre el total que debió pagarse, por los días de atraso. Orden de imputación del pago: mora → interés compensatorio → capital.
 - Pagos parciales: no se aceptan. Solo el total del período, y los períodos se pagan en orden (primero el más antiguo).
