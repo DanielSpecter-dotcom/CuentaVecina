@@ -5,6 +5,7 @@ import {
   calcularMora,
   determinarCiclo,
   r2,
+  cuotaFrancesa,
   simularCuotas,
   simularFinDeMes,
   tasaEfectivaPeriodo,
@@ -111,4 +112,73 @@ describe('mora', () => {
   it('pago puntual no genera mora', () => {
     expect(calcularMora(1000, '2026-09-26', '2026-09-26', tna24.tasaMora).interes).toBe(0)
   })
+})
+
+describe('cuota francesa igual en todas las cuotas', () => {
+  const tns5: CondicionesCredito = {
+    tasa: { tipo: 'NOMINAL', valor: 5, periodoDias: 180, capitalizacionDias: 30 },
+    tasaMora: { tipo: 'EFECTIVA', valor: 50, periodoDias: 360 },
+    diaCorte: 20,
+    diaPago: 22,
+  }
+
+  it('venta real de 6 cuotas (C′ = 70.17, TNS 5 % cap. mensual): 6 × 12.04', () => {
+    expect(cuotaFrancesa(70.17, tasaEfectivaPeriodo(tns5.tasa, 30), 6)).toBe(12.04)
+  })
+
+  it('el cronograma cierra con todas las cuotas iguales y el ajuste mínimo en el interés de la última', () => {
+    const r = simularCuotas(70, 6, '2026-11-13', '10:00:00', tns5)
+    const cuotas = r.cronograma.map((f) => f.cuota)
+    expect(new Set(cuotas).size).toBe(1)
+    expect(r.cronograma.at(-1)!.saldoFinal).toBe(0)
+  })
+
+  // Propiedades para muchos casos: montos, tasas y plazos variados.
+  const tasas: CondicionesCredito['tasa'][] = [
+    { tipo: 'EFECTIVA', valor: 30, periodoDias: 360 },
+    { tipo: 'EFECTIVA', valor: 80, periodoDias: 360 },
+    { tipo: 'NOMINAL', valor: 24, periodoDias: 360, capitalizacionDias: 1 },
+    { tipo: 'NOMINAL', valor: 5, periodoDias: 180, capitalizacionDias: 30 },
+    { tipo: 'EFECTIVA', valor: 5, periodoDias: 30 },
+  ]
+  const montos = [2.6, 7, 12.38, 49.9, 100, 333.33, 999.99, 1000, 4850.5]
+  for (const tasa of tasas) {
+    for (const monto of montos) {
+      it(`${tasa.tipo} ${tasa.valor} % — S/ ${monto} en 1 a 24 cuotas`, () => {
+        const c = { ...tns5, tasa }
+        for (let n = 1; n <= 24; n++) {
+          let r
+          try {
+            r = simularCuotas(monto, n, '2026-11-25', '10:00:00', c)
+          } catch (e) {
+            // Solo se rechaza cuando la cuota sería de céntimos (no hay forma de repartir en partes iguales).
+            expect((e as Error).message).toContain('cuotas iguales')
+            expect(monto / n).toBeLessThan(0.5)
+            continue
+          }
+          const filas = r.cronograma
+          // Todas las cuotas iguales a R.
+          expect(filas.every((f) => f.cuota === r.valorCuota)).toBe(true)
+          // Saldo final 0 y amortizaciones que suman el capital capitalizado.
+          expect(filas.at(-1)!.saldoFinal).toBe(0)
+          expect(Math.round(filas.reduce((s, f) => s + f.amortizacion, 0) * 100)).toBe(Math.round(r.capitalCapitalizado * 100))
+          // Cada fila cuadra: interés + amortización = cuota; nada negativo.
+          for (const f of filas) {
+            expect(Math.round((f.interes + f.amortizacion) * 100)).toBe(Math.round(f.cuota * 100))
+            expect(f.interes).toBeGreaterThanOrEqual(0)
+            expect(f.amortizacion).toBeGreaterThan(0)
+          }
+          // El ajuste en el interés de la última cuota no supera lo que mueve 1 céntimo de R al final del plazo
+          // (ese céntimo se arrastra con intereses en cada período): 0.01 · Σ (1 + TEM)^k.
+          const ultima = filas.at(-1)!
+          const ajuste = Math.abs(ultima.interes - Math.round(ultima.saldoInicial * r.tem * 100) / 100)
+          let cota = 0
+          for (let k = 0; k < n; k++) cota += 0.01 * Math.pow(1 + r.tem, k)
+          if (r.valorCuota >= 5) expect(ajuste).toBeLessThanOrEqual(cota + 1e-9)
+          // Total = n × R.
+          expect(r.totalPagar).toBe(Math.round(r.valorCuota * n * 100) / 100)
+        }
+      })
+    }
+  }
 })

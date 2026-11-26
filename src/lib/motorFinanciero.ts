@@ -139,9 +139,48 @@ export interface ResultadoCuotas extends Ciclo {
 }
 
 /**
+ * Cuota francesa en céntimos, igual para todas las cuotas.
+ * R exacta = C' · TEM / (1 − (1 + TEM)^(−n)) casi nunca es un monto en céntimos: al redondearla, los
+ * medios céntimos se acumulan y el saldo no cierra. Se prueban R redondeada y sus vecinas (±1, ±2… céntimos)
+ * y se elige la que deja el menor ajuste en el interés de la última cuota (Iₙ = R − SIₙ frente a TEM·SIₙ),
+ * sin que ese interés ni ninguna amortización quede negativo. Ante empate gana la más cercana a R redondeada.
+ */
+export function cuotaFrancesa(capitalCapitalizado: number, tem: number, numeroCuotas: number): number | null {
+  const exacta = tem === 0 ? capitalCapitalizado / numeroCuotas : (capitalCapitalizado * tem) / (1 - Math.pow(1 + tem, -numeroCuotas))
+  const base = r2(exacta)
+  let mejor: number | null = null
+  let mejorAjuste = Infinity
+  for (let d = 0; d <= numeroCuotas; d++) {
+    for (const signo of d === 0 ? [1] : [-1, 1]) {
+      const r = r2(base + (signo * d) / 100)
+      if (r <= 0) continue
+      let saldo = capitalCapitalizado
+      let valida = true
+      for (let k = 1; k < numeroCuotas; k++) {
+        const amortizacion = r2(r - r2(saldo * tem))
+        if (amortizacion <= 0) valida = false
+        saldo = r2(saldo - amortizacion)
+      }
+      const interesUltima = r2(r - saldo)
+      // La última cuota debe amortizar algo (saldo > 0) y su interés no puede ser negativo.
+      if (!valida || saldo <= 0 || interesUltima < 0) continue
+      const ajuste = Math.abs(r2(interesUltima - r2(saldo * tem)))
+      if (ajuste < mejorAjuste) {
+        mejor = r
+        mejorAjuste = ajuste
+      }
+    }
+    // Siempre se comparan R y sus vecinas a ±1 céntimo; solo se amplía la búsqueda si ninguna es válida.
+    if (d >= 1 && mejor !== null) break
+  }
+  // null: la cuota es tan pequeña que ningún monto en céntimos reparte la deuda en partes iguales.
+  return mejor
+}
+
+/**
  * Venta en cuotas — método francés vencido simple ordinario (meses de 30 días).
  * 1) Gracia total: el capital se capitaliza desde la compra hasta la fecha de pago del ciclo.
- * 2) Cuota constante: R = C' · TEM / (1 − (1 + TEM)^(−n)).
+ * 2) Cuota constante en céntimos, igual en todas las cuotas (ver cuotaFrancesa).
  * 3) Las cuotas vencen en la fecha de pago de los n meses siguientes.
  */
 export function simularCuotas(
@@ -157,18 +196,20 @@ export function simularCuotas(
   const tepGracia = tasaEfectivaPeriodo(c.tasa, diasGracia)
   const capitalCapitalizado = r2(capital * (1 + tepGracia))
   const tem = tasaEfectivaPeriodo(c.tasa, DIAS_MES)
-  const valorCuota =
-    tem === 0
-      ? r2(capitalCapitalizado / numeroCuotas)
-      : r2((capitalCapitalizado * tem) / (1 - Math.pow(1 + tem, -numeroCuotas)))
+  const cuota0 = cuotaFrancesa(capitalCapitalizado, tem, numeroCuotas)
+  if (cuota0 === null) {
+    throw new Error(`Con ${numeroCuotas} cuotas el monto es muy pequeño para repartirse en cuotas iguales. Elige menos cuotas.`)
+  }
+  const valorCuota = cuota0
 
   const cronograma: FilaCronograma[] = []
   let saldo = capitalCapitalizado
   for (let k = 1; k <= numeroCuotas; k++) {
-    const interes = r2(saldo * tem)
-    // La última cuota amortiza el saldo exacto (ajuste por redondeo).
-    const amortizacion = k === numeroCuotas ? saldo : r2(valorCuota - interes)
-    const cuota = r2(interes + amortizacion)
+    const ultima = k === numeroCuotas
+    // Todas las cuotas valen R. La última amortiza el saldo exacto y su interés (R − saldo) absorbe el redondeo.
+    const interes = ultima ? r2(valorCuota - saldo) : r2(saldo * tem)
+    const amortizacion = ultima ? saldo : r2(valorCuota - interes)
+    const cuota = valorCuota
     const saldoFinal = r2(saldo - amortizacion)
     cronograma.push({
       numero: k,

@@ -69,7 +69,7 @@ export default function NuevaVenta() {
   const enCuotas = producto?.modalidad_venta === 0 ? false : producto?.modalidad_venta === 1 ? true : enCuotasElegido
 
   // Simulación inmediata con el motor en TypeScript (la BD recalcula al guardar).
-  const simulacion = useMemo(() => {
+  const resultadoSimulacion = useMemo(() => {
     if (!cliente || !producto || !tienda || !fechaHora) return null
     const cant = Number(cantidad)
     if (!(cant >= 1)) return null
@@ -86,10 +86,13 @@ export default function NuevaVenta() {
       return enCuotas
         ? simularCuotas(capital, Number(numCuotas), fecha, `${hora}:00`, cond)
         : simularFinDeMes(capital, fecha, `${hora}:00`, cond)
-    } catch {
-      return null
+    } catch (e) {
+      // Motivo visible (p. ej. una cuota demasiado pequeña para repartirse en partes iguales).
+      return { error: e instanceof Error ? e.message : 'No se pudo calcular la simulación.' }
     }
   }, [cliente, producto, tienda, cantidad, enCuotas, numCuotas, fechaHora])
+  const simulacion = resultadoSimulacion && !('error' in resultadoSimulacion) ? resultadoSimulacion : null
+  const errorSimulacion = resultadoSimulacion && 'error' in resultadoSimulacion ? resultadoSimulacion.error : null
 
   const disponible = cliente && deuda != null ? r2(Number(cliente.limite_credito) - deuda) : null
   const excede = simulacion && disponible != null && simulacion.capital > disponible
@@ -251,7 +254,11 @@ export default function NuevaVenta() {
               Simulación{cliente && ` · ${cliente.nombre}`}
             </h2>
             {!simulacion ? (
-              <p className="mt-2 text-sm text-tinta-suave">Elige cliente y producto para ver el cálculo.</p>
+              errorSimulacion ? (
+                <p className="mt-2 text-sm font-bold text-vencido">{errorSimulacion}</p>
+              ) : (
+                <p className="mt-2 text-sm text-tinta-suave">Elige cliente y producto para ver el cálculo.</p>
+              )
             ) : (
               <div className="mt-2 space-y-3">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
