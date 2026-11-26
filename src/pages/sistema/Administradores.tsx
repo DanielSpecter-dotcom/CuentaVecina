@@ -123,7 +123,7 @@ export default function Administradores() {
             <Campo etiqueta="Usuario" ayuda="3 a 40 caracteres: letras, números, punto o guion.">
               <input value={nuevo.usuario} onChange={(e) => setNuevo({ ...nuevo, usuario: e.target.value })} required pattern="[A-Za-z0-9._\-]{3,40}" />
             </Campo>
-            <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. No se envía ningún correo.">
+            <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. Entrégasela a la persona en mano.">
               <input type="text" value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} required minLength={8} />
             </Campo>
             <PieModal>

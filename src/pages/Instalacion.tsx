@@ -64,7 +64,7 @@ export default function Instalacion() {
               <Campo etiqueta="Usuario" ayuda="Con este nombre iniciarás sesión. 3 a 40 caracteres: letras, números, punto o guion.">
                 <input value={f.usuario} onChange={(e) => setF({ ...f, usuario: e.target.value })} required pattern="[A-Za-z0-9._\-]{3,40}" autoComplete="username" />
               </Campo>
-              <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. No se envía por correo: guárdala bien.">
+              <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Guárdala bien: es la única forma de entrar.">
                 <input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required minLength={8} autoComplete="new-password" />
               </Campo>
               <Campo etiqueta="Repite la contraseña" ayuda="Para evitar errores de tipeo.">

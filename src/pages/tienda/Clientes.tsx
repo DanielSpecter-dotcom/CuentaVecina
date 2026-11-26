@@ -421,7 +421,7 @@ export default function Clientes() {
                 Su usuario será su DNI (<strong className="text-tinta">{cuenta.cliente.documento}</strong>). Con él podrá ver sus compras, cuotas y pagos.
               </p>
             )}
-            <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Entrégasela al cliente; no se envía ningún correo.">
+            <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Entrégasela al cliente en mano.">
               <input type="text" autoComplete="new-password" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} />
             </Campo>
             <PieModal>
