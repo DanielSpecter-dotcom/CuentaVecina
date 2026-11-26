@@ -7,13 +7,16 @@
 //   · la simulación inmediata en "Nueva venta" (ticket y cronograma), y
 //   · las pruebas unitarias (motorFinanciero.test.ts), con los juegos de datos del informe.
 //
-// Cada sección indica su función gemela en la base de datos (ver FORMULAS.md):
+// Cada sección indica su función gemela en la base de datos (supabase/migrations/010_motor_financiero.sql;
+// cómo se usan al vender y cobrar: 011_venta_y_cobranza.sql; guía: FORMULAS.md):
 //   §1 Tasas ..................... tasaEfectivaPeriodo ↔ fn_tep
 //   §2 Ciclo de facturación ...... determinarCiclo     ↔ fn_ciclo_compra
-//   §3 Compra a fin de mes ....... simularFinDeMes     ↔ simular_venta (modalidad FIN_DE_MES)
-//   §4 Compra en cuotas .......... cuotaFrancesa       ↔ fn_cuota_francesa
-//                                  simularCuotas       ↔ simular_venta (modalidad CUOTAS)
-//   §5 Mora ...................... calcularMora        ↔ estado_cuenta (ítem "Intereses por mora")
+//   §3 Compra a fin de mes ....... simularFinDeMes     ↔ fn_interes (en simular_venta)
+//   §4 Compra en cuotas .......... cuotaExacta         ↔ fn_cuota_exacta
+//                                  cuotaFrancesa       ↔ fn_cuota_francesa
+//                                  cronogramaFrances   ↔ fn_cronograma_frances
+//                                  simularCuotas       ↔ fn_capitalizar + lo anterior (en simular_venta)
+//   §5 Mora ...................... calcularMora        ↔ fn_interes (en estado_cuenta)
 //
 // Convenciones del Anexo A del enunciado:
 //   · Año comercial de 360 días y mes de 30 días.
@@ -180,10 +183,13 @@ export interface ResultadoCuotas extends Ciclo {
   cronograma: FilaCronograma[]
 }
 
+/** Cuota exacta del método francés:  R = C′ · TEM / (1 − (1 + TEM)^(−n)).      SQL: fn_cuota_exacta */
+export function cuotaExacta(capitalCapitalizado: number, tem: number, numeroCuotas: number): number {
+  return tem === 0 ? capitalCapitalizado / numeroCuotas : (capitalCapitalizado * tem) / (1 - Math.pow(1 + tem, -numeroCuotas))
+}
+
 /**
  * Cuota francesa R en céntimos, igual en todas las cuotas.    SQL: fn_cuota_francesa
- *
- *   R exacta = C′ · TEM / (1 − (1 + TEM)^(−n))
  *
  * La R exacta casi nunca es un monto en céntimos y, al redondearla, el saldo no cierra en 0. Se prueban
  * la R redondeada y sus vecinas (±1, ±2… céntimos) y se elige la que deja el menor ajuste en el interés
@@ -191,8 +197,7 @@ export interface ResultadoCuotas extends Ciclo {
  * Devuelve null si el monto es tan pequeño que ninguna R en céntimos reparte la deuda en partes iguales.
  */
 export function cuotaFrancesa(capitalCapitalizado: number, tem: number, numeroCuotas: number): number | null {
-  const exacta = tem === 0 ? capitalCapitalizado / numeroCuotas : (capitalCapitalizado * tem) / (1 - Math.pow(1 + tem, -numeroCuotas))
-  const base = r2(exacta)
+  const base = r2(cuotaExacta(capitalCapitalizado, tem, numeroCuotas))
   let mejor: number | null = null
   let mejorAjuste = Infinity
   for (let d = 0; d <= numeroCuotas; d++) {
@@ -222,6 +227,32 @@ export function cuotaFrancesa(capitalCapitalizado: number, tem: number, numeroCu
 }
 
 /**
+ * Cronograma francés: una fila por cuota.                     SQL: fn_cronograma_frances
+ *
+ *   k < n:  Iₖ = SIₖ · TEM,   Aₖ = R − Iₖ
+ *   k = n:  Aₙ = SIₙ,         Iₙ = R − SIₙ   (la última absorbe el redondeo)
+ *   SIₖ₊₁ = SIₖ − Aₖ;   vence en la fecha de pago + k meses
+ */
+export function cronogramaFrances(
+  capitalCapitalizado: number,
+  tem: number,
+  cuota: number,
+  numeroCuotas: number,
+  fechaPago: string,
+): FilaCronograma[] {
+  const filas: FilaCronograma[] = []
+  let saldo = capitalCapitalizado
+  for (let k = 1; k <= numeroCuotas; k++) {
+    const interes = k < numeroCuotas ? r2(saldo * tem) : r2(cuota - saldo)
+    const amortizacion = r2(cuota - interes)
+    const saldoFinal = r2(saldo - amortizacion)
+    filas.push({ numero: k, fechaVencimiento: sumarMeses(fechaPago, k), saldoInicial: saldo, interes, amortizacion, cuota, saldoFinal })
+    saldo = saldoFinal
+  }
+  return filas
+}
+
+/**
  * Venta en n cuotas.                                          SQL: simular_venta (CUOTAS)
  *
  *   1) Gracia total (compra → fecha de pago del ciclo):  C′ = Capital · (1 + TEP(días de gracia))
@@ -243,31 +274,13 @@ export function simularCuotas(
   const ciclo = determinarCiclo(fechaCompra, horaCompra, c.diaCorte, c.diaPago, c.horaCorte)
   const diasGracia = diffDias(fechaCompra, ciclo.fechaPago)
   const tepGracia = tasaEfectivaPeriodo(c.tasa, diasGracia)
-  const capitalCapitalizado = r2(capital * (1 + tepGracia))
+  const capitalCapitalizado = r2(capital * (1 + tepGracia)) // C′ = C · (1 + TEP)
   const tem = tasaEfectivaPeriodo(c.tasa, DIAS_MES)
   const valorCuota = cuotaFrancesa(capitalCapitalizado, tem, numeroCuotas)
   if (valorCuota === null) {
     throw new Error(`Con ${numeroCuotas} cuotas el monto es muy pequeño para repartirse en cuotas iguales. Elige menos cuotas.`)
   }
-
-  const cronograma: FilaCronograma[] = []
-  let saldo = capitalCapitalizado
-  for (let k = 1; k <= numeroCuotas; k++) {
-    const ultima = k === numeroCuotas
-    const interes = ultima ? r2(valorCuota - saldo) : r2(saldo * tem)
-    const amortizacion = ultima ? saldo : r2(valorCuota - interes)
-    const saldoFinal = r2(saldo - amortizacion)
-    cronograma.push({
-      numero: k,
-      fechaVencimiento: sumarMeses(ciclo.fechaPago, k),
-      saldoInicial: saldo,
-      interes,
-      amortizacion,
-      cuota: valorCuota,
-      saldoFinal,
-    })
-    saldo = saldoFinal
-  }
+  const cronograma = cronogramaFrances(capitalCapitalizado, tem, valorCuota, numeroCuotas, ciclo.fechaPago)
   const totalPagar = r2(valorCuota * numeroCuotas)
   return {
     modalidad: 'CUOTAS',

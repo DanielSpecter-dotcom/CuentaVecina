@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 // Fórmulas del sistema, escritas con fracciones y exponentes reales. Se muestran en Ayuda.
-// Cada una indica dónde está en el código (motor TS y función SQL) y en qué pantalla se ve el resultado.
+// Cada una indica dónde está en el código (función TS · función SQL de 010_motor_financiero.sql) y en qué pantalla se ve.
 // Mapa completo con ejemplos: FORMULAS.md.
 
 /** Fracción apilada (numerador sobre denominador). */
@@ -65,7 +65,7 @@ const FORMULAS: Formula[] = [
     texto: 'Interés = Capital × TEP(días), días = fecha de pago − fecha de compra; Total = Capital + Interés',
     visual: [<>I = C × TEP(d)</>, <>d = fecha de pago − fecha de compra</>, <>Total = C + I</>],
     nota: 'Las compras después del día y hora de corte pasan al corte del mes siguiente.',
-    codigo: 'determinarCiclo + simularFinDeMes · fn_ciclo_compra + simular_venta',
+    codigo: 'determinarCiclo + simularFinDeMes · fn_ciclo_compra + fn_interes',
     pantalla: 'Ticket de Nueva venta y listado de pago (Cobranza, Mi cuenta).',
   },
   {
@@ -94,7 +94,7 @@ const FORMULAS: Formula[] = [
         céntimos y es igual en todas las cuotas.
       </>
     ),
-    codigo: 'simularCuotas + cuotaFrancesa · simular_venta + fn_cuota_francesa',
+    codigo: 'cuotaExacta + cuotaFrancesa · fn_capitalizar + fn_cuota_exacta + fn_cuota_francesa',
     pantalla: 'Ticket y cronograma de Nueva venta; cuotas en Cobranza y Mi cuenta.',
   },
   {
@@ -112,7 +112,7 @@ const FORMULAS: Formula[] = [
       </>,
     ],
     nota: 'Última cuota: Aₙ = SIₙ e Iₙ = R − SIₙ (absorbe el redondeo). Vencen el día de pago de los n meses siguientes.',
-    codigo: 'simularCuotas · simular_venta',
+    codigo: 'cronogramaFrances · fn_cronograma_frances',
     pantalla: 'Cronograma de Nueva venta.',
   },
   {
@@ -127,7 +127,7 @@ const FORMULAS: Formula[] = [
       </>,
     ],
     nota: 'Se aplica la tasa moratoria pactada (nominal o efectiva) y aparece como un ítem aparte del listado.',
-    codigo: 'calcularMora · estado_cuenta',
+    codigo: 'calcularMora · fn_interes (en estado_cuenta)',
     pantalla: 'Listado de pago en Cobranza y Mi cuenta (renglón "Intereses por mora").',
   },
   {

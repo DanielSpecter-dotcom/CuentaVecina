@@ -98,8 +98,8 @@ supabase/
   migrations/007_*.sql        Fecha de pago en el mes siguiente al corte (p. ej. corte 10, pago 5)
   migrations/008_*.sql        Solo soles (moneda del crédito fija en S/)
   migrations/009_*.sql        Listado de pago generado en la fecha de corte
-  migrations/010_*.sql        Motor financiero ordenado y documentado (tasas, ciclo, cuota francesa, simulación)
-  migrations/011_*.sql        Listado de pago, mora y registro del pago documentados
+  migrations/010_*.sql        MOTOR FINANCIERO: solo las fórmulas (TEP, ciclo, interés, cuota francesa, cronograma)
+  migrations/011_*.sql        Venta y cobranza: simular/registrar venta, listado de pago, mora y pago (usan 010)
   scripts/reiniciar_demo.sql  Deja la base en blanco para una demo (BORRA TODO)
   functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
   functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves
