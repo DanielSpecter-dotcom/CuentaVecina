@@ -34,6 +34,9 @@ Desde ahí, todo se crea desde la app (sin correos): el admin del sistema da de 
 y les genera usuario (su DNI).
 
 **Ruta de prueba en vivo:** [`docs/RUTA_DE_PRUEBA.md`](docs/RUTA_DE_PRUEBA.md) (también en la pantalla *Ayuda*).
+
+**Fórmulas (para la exposición):** [`FORMULAS.md`](FORMULAS.md): cada fórmula, su lógica, dónde está en el código
+(TypeScript y SQL), dónde se ve en la app y un ejemplo numérico. También en *Ayuda → Fórmulas del sistema*.
 Para empezar de cero antes de una demo: `supabase/scripts/reiniciar_demo.sql` (**borra todos los datos**).
 
 ## 3. PWA y notificaciones
@@ -42,10 +45,14 @@ Para empezar de cero antes de una demo: `supabase/scripts/reiniciar_demo.sql` (*
   internet) pero **nunca** guarda datos de Supabase. Al publicar una versión nueva, la app muestra "Actualizar".
   La PWA solo se activa en el build (`npm run build && npm run preview`, o en Vercel), no en `npm run dev`.
 - **Avisos dentro de la app (🔔):** tabla `notificaciones`, creada solo por triggers de la BD:
-  - Cliente: *Nueva compra registrada*, *Pago recibido*, recordatorios (3 días antes, 1 día antes, el mismo día) y
+  - Cliente: *Nueva compra registrada*, *Pago recibido*, *Listado de pago del corte* (al cerrarse su corte),
+    recordatorios (3 días antes, 1 día antes, el mismo día) y
     *Pago vencido* (1, 3, 7, 15 y 30 días).
-  - Administrador del negocio: *Cobranza del día* (cuántos vencen hoy y cuántos están vencidos).
+  - Administrador del negocio: *Corte cerrado* (clientes y total del listado de pago) y *Cobranza del día*
+    (cuántos vencen hoy y cuántos están vencidos).
   - Los recordatorios los genera `pg_cron` todos los días a las 8:00 a. m. de Lima (`fn_generar_recordatorios`).
+  - El listado de pago se genera en la fecha de corte, al pasar la hora de corte de la tienda: `pg_cron` revisa cada
+    15 minutos (`fn_generar_listados_corte`).
   - La campana se actualiza al instante con Supabase Realtime (respeta RLS).
 - **Push al celular (opcional):** cuando hay una notificación nueva y el usuario activó "Recibir avisos en este
   dispositivo", la BD llama (pg_net) a la Edge Function `enviar-push`, que la envía con Web Push. Para activarlo:
@@ -87,6 +94,12 @@ supabase/
   migrations/003_*.sql        Ajuste de fn_deuda_vigente (ya aplicada)
   migrations/004_*.sql        Quita al rol anon todo permiso salvo enviar solicitudes (defensa en profundidad)
   migrations/005_*.sql        Instalación inicial, notificaciones, recordatorios (pg_cron) y suscripciones push
+  migrations/006_*.sql        Cuota francesa igual en todas las cuotas
+  migrations/007_*.sql        Fecha de pago en el mes siguiente al corte (p. ej. corte 10, pago 5)
+  migrations/008_*.sql        Solo soles (moneda del crédito fija en S/)
+  migrations/009_*.sql        Listado de pago generado en la fecha de corte
+  migrations/010_*.sql        MOTOR FINANCIERO: solo las fórmulas (TEP, ciclo, interés, cuota francesa, cronograma)
+  migrations/011_*.sql        Venta y cobranza: simular/registrar venta, listado de pago, mora y pago (usan 010)
   scripts/reiniciar_demo.sql  Deja la base en blanco para una demo (BORRA TODO)
   functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
   functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves
@@ -133,7 +146,6 @@ supabase/
 
 - Cargar las tasas máximas BCRP vigentes (pantalla *Tasas BCRP*). Ojo: un comercio no es entidad financiera; revisar
   qué tope aplica ("operaciones entre personas ajenas al sistema financiero").
-- Precios de productos para clientes en dólares (hoy el catálogo está en soles).
 - Configurar las llaves VAPID para activar los avisos push en el celular (ver sección 3).
 - Generar los tipos de la BD (`supabase gen types`) para tipar el cliente de Supabase.
 - Versionar el esquema base: la migración `001` (tablas) se aplicó desde el panel y no está en el repo.

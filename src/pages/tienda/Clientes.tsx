@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { CamposTasa, type ValorTasa } from '../../components/CamposTasa'
-import { Avatar, Paso, Segmentado } from '../../components/cuaderno'
+import { Avatar, Paso } from '../../components/cuaderno'
 import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { describirTasa } from '../../lib/codigos'
-import { dinero } from '../../lib/formato'
+import { describirTasa, MONEDA_CREDITO } from '../../lib/codigos'
+import { dinero, textoCortePago } from '../../lib/formato'
+import { pagoMesSiguiente } from '../../lib/motorFinanciero'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Perfil } from '../../types'
 
@@ -17,7 +18,6 @@ interface Form {
   telefono: string
   correo: string
   direccion: string
-  usd: boolean
   tasa: ValorTasa
   mora: ValorTasa
   limite_credito: string
@@ -32,7 +32,6 @@ const vacio: Form = {
   telefono: '',
   correo: '',
   direccion: '',
-  usd: false,
   tasa: { nominal: false, valor: '', periodo: 7, capitalizacion: null },
   mora: { nominal: false, valor: '', periodo: 7, capitalizacion: null },
   limite_credito: '500',
@@ -49,7 +48,6 @@ function aForm(c: Cliente): Form {
     telefono: c.telefono ?? '',
     correo: c.correo ?? '',
     direccion: c.direccion ?? '',
-    usd: c.moneda,
     tasa: { nominal: c.tipo_tasa, valor: String(c.tasa_compensatoria), periodo: c.periodo_tasa, capitalizacion: c.capitalizacion },
     mora: { nominal: c.tipo_tasa_moratoria, valor: String(c.tasa_moratoria), periodo: c.periodo_tasa_moratoria, capitalizacion: c.capitalizacion_moratoria },
     limite_credito: String(c.limite_credito),
@@ -91,7 +89,6 @@ export default function Clientes() {
     e.preventDefault()
     if (!form || !tienda) return
     setError(null)
-    if (Number(form.dia_pago) <= Number(form.dia_corte)) return setError('El día de pago debe ser posterior al día de corte.')
     setGuardando(true)
     const fila = {
       tienda_id: tienda.id,
@@ -100,7 +97,6 @@ export default function Clientes() {
       telefono: form.telefono || null,
       correo: form.correo || null,
       direccion: form.direccion || null,
-      moneda: form.usd,
       tipo_tasa: form.tasa.nominal,
       tasa_compensatoria: Number(form.tasa.valor),
       periodo_tasa: form.tasa.periodo,
@@ -213,7 +209,6 @@ export default function Clientes() {
           <ul className="grid gap-3 sm:grid-cols-2 min-[75rem]:hidden">
             {visibles.map((c) => {
               const perfil = usuarios.find((u) => u.cliente_id === c.id)
-              const m = c.moneda ? 'USD' : 'PEN'
               return (
                 <li key={c.id} className={`rounded-2xl border border-papel-borde p-4 ${c.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
                   <div className="flex items-center gap-3">
@@ -239,12 +234,12 @@ export default function Clientes() {
                       etiqueta="Límite"
                       valor={
                         <>
-                          {dinero(c.limite_credito, m)}
+                          {dinero(c.limite_credito)}
                           <span className="block text-xs font-normal text-tinta-suave">hasta {c.plazo_max_meses} cuotas</span>
                         </>
                       }
                     />
-                    <Dato etiqueta="Corte / pago" valor={`día ${c.dia_corte} / día ${c.dia_pago}`} />
+                    <Dato etiqueta="Corte / pago" valor={textoCortePago(c.dia_corte, c.dia_pago)} />
                   </dl>
                   <div className="mt-3 border-t border-dashed border-papel-borde pt-1 text-sm">{usuarioDe(c, perfil)}</div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -278,7 +273,6 @@ export default function Clientes() {
                 <tbody>
                   {visibles.map((c) => {
                     const perfil = usuarios.find((u) => u.cliente_id === c.id)
-                    const m = c.moneda ? 'USD' : 'PEN'
                     return (
                       <tr key={c.id} className={c.estado ? '' : 'bg-papel-borde/40'}>
                         <td className="min-w-44">
@@ -296,10 +290,11 @@ export default function Clientes() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap">
-                          <div className="font-bold">{dinero(c.limite_credito, m)}</div>
+                          <div className="font-bold">{dinero(c.limite_credito)}</div>
                           <div className="text-xs text-tinta-suave">hasta {c.plazo_max_meses} cuotas</div>
                           <div className="text-xs text-tinta-suave">
                             corte día {c.dia_corte} · pago día {c.dia_pago}
+                            {pagoMesSiguiente(c.dia_corte, c.dia_pago) && ' del mes siguiente'}
                           </div>
                         </td>
                         <td className="text-xs">{usuarioDe(c, perfil, true)}</td>
@@ -369,16 +364,8 @@ export default function Clientes() {
 
             <section className="space-y-3">
               <Paso n={4}>Crédito</Paso>
-              <Campo etiqueta="Moneda" ayuda="Moneda en la que se lleva el crédito del cliente.">
-                <Segmentado
-                  etiqueta="Moneda"
-                  valor={form.usd ? 'USD' : 'PEN'}
-                  onChange={(v) => setForm({ ...form, usd: v === 'USD' })}
-                  opciones={[
-                    { valor: 'PEN', titulo: 'Soles', detalle: 'S/' },
-                    { valor: 'USD', titulo: 'Dólares', detalle: 'US$' },
-                  ]}
-                />
+              <Campo etiqueta="Moneda del crédito" ayuda="Todos los créditos se llevan en soles, igual que los precios de los productos.">
+                <input value={MONEDA_CREDITO} readOnly aria-readonly="true" className="bg-papel" />
               </Campo>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Campo etiqueta="Límite de crédito" ayuda="Deuda máxima permitida. No se aceptan compras que la superen.">
@@ -390,8 +377,8 @@ export default function Clientes() {
                 <Campo etiqueta="Día de corte" ayuda="Día del mes (1 a 28) en que se cierra el ciclo. Compras posteriores pasan al mes siguiente.">
                   <input type="number" min={1} max={28} value={form.dia_corte} onChange={set('dia_corte')} required />
                 </Campo>
-                <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28, mayor que el día de corte) en que el cliente se compromete a pagar.">
-                  <input type="number" min={2} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
+                <Campo etiqueta="Día de pago" ayuda="Día del mes (1 a 28) en que el cliente se compromete a pagar. Si es menor o igual al día de corte (p. ej. corte 10, pago 5), el pago cae en el mes siguiente al corte.">
+                  <input type="number" min={1} max={28} value={form.dia_pago} onChange={set('dia_pago')} required />
                 </Campo>
               </div>
             </section>
@@ -421,7 +408,7 @@ export default function Clientes() {
                 Su usuario será su DNI (<strong className="text-tinta">{cuenta.cliente.documento}</strong>). Con él podrá ver sus compras, cuotas y pagos.
               </p>
             )}
-            <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Entrégasela al cliente; no se envía ningún correo.">
+            <Campo etiqueta="Contraseña" ayuda="Mínimo 8 caracteres. Entrégasela al cliente en mano.">
               <input type="text" autoComplete="new-password" value={cuenta.password} onChange={(e) => setCuenta({ ...cuenta, password: e.target.value })} required minLength={8} />
             </Campo>
             <PieModal>

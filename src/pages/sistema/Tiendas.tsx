@@ -310,7 +310,7 @@ export default function Tiendas() {
             <Campo etiqueta="Nombre completo" ayuda="Nombre del responsable del negocio.">
               <input value={nuevoAdmin.nombre} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, nombre: e.target.value })} required maxLength={100} />
             </Campo>
-            <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. Entrégasela al responsable; no se envía ningún correo.">
+            <Campo etiqueta="Contraseña inicial" ayuda="Mínimo 8 caracteres. Entrégasela al responsable de la tienda en mano.">
               <input type="text" autoComplete="new-password" value={nuevoAdmin.password} onChange={(e) => setNuevoAdmin({ ...nuevoAdmin, password: e.target.value })} required minLength={8} />
             </Campo>
             <PieModal>

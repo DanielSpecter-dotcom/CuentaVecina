@@ -60,7 +60,7 @@ Scripts SQL ya generados (listos para ejecutar):
 Estas reglas vienen del informe (Anexo A / marco legal) y **deben implementarse igual en el frontend (para UX) y en la BD (ya están como trigger/constraint)**:
 
 1. **Límite de crédito**: `deuda_vigente + monto_nueva_venta <= limite_credito`. Ya validado con `trg_ventas_validar_limite` (rechaza el INSERT con excepción si se excede).
-2. **Validación BCRP**: la tasa pactada con el cliente (`tasa_compensatoria`, anualizada) no puede superar `tasa_max_pen` / `tasa_max_usd` vigente en `parametros_bcrp` según la moneda. Esto NO está como trigger todavía — hay que decidir si va en el frontend, en una Edge Function, o se agrega un trigger adicional (recomendado antes de producción).
+2. **Validación BCRP**: la tasa pactada con el cliente (`tasa_compensatoria`, anualizada) no puede superar `tasa_max_pen` vigente en `parametros_bcrp` según la moneda. Esto NO está como trigger todavía — hay que decidir si va en el frontend, en una Edge Function, o se agrega un trigger adicional (recomendado antes de producción).
 3. **Prelación de pagos**: al registrar un `pago`, el orden de imputación es **mora → interés compensatorio → capital**.
 4. **Método francés vencido simple ordinario**: el cronograma en `cuotas` (columnas `interes`, `amortizacion`, `cuota`, `saldo_final`) se calcula con cuota constante; la lógica de cálculo (TED, TEM, número de cuotas, etc.) vive en el frontend o en una función de Postgres — pendiente decidir dónde (ver Fase 3).
 5. **Período de gracia / traslado de período** (`traslado_periodo` en `ventas`): si la compra es después del día de corte, se traslada al siguiente ciclo de facturación.

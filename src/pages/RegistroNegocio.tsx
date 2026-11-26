@@ -56,7 +56,7 @@ export default function RegistroNegocio() {
           {enviado ? (
             <div className="pb-5">
               <Alerta tipo="exito">
-                Solicitud enviada. Te contactaremos al teléfono o correo indicado cuando tu tienda esté activa.{' '}
+                Solicitud enviada. Cuando el administrador del sistema la apruebe, te entregará tu usuario y contraseña para entrar.{' '}
                 <Link to="/login" className="font-bold underline">
                   Volver a iniciar sesión
                 </Link>

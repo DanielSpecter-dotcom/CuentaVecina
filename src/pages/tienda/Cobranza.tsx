@@ -4,7 +4,7 @@ import { Avatar, BarraAccion, Hoja, MargenFecha, Renglon, RenglonTitulo, Selecto
 import { EstadoCuentaVista } from '../../components/EstadoCuentaVista'
 import { Alerta, Boton, Campo, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { describirTasa, moneda as aMoneda } from '../../lib/codigos'
+import { describirTasa } from '../../lib/codigos'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
 import { dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
@@ -31,7 +31,6 @@ export default function Cobranza() {
   }, [])
 
   const cliente = clientes.find((c) => c.id === clienteId)
-  const m = aMoneda(cliente?.moneda ?? false)
 
   const periodos = datos?.id === clienteId ? datos.periodos : []
   const pagos = datos?.id === clienteId ? datos.pagos : []
@@ -66,7 +65,7 @@ export default function Cobranza() {
 
   async function registrarPago() {
     if (!ec) return
-    if (!confirm(`¿Registrar el pago total de ${dinero(ec.total, m)} de ${ec.cliente} con fecha ${formatearFecha(fechaEfectiva)}?`)) return
+    if (!confirm(`¿Registrar el pago total de ${dinero(ec.total)} de ${ec.cliente} con fecha ${formatearFecha(fechaEfectiva)}?`)) return
     setGuardando(true)
     setError(null)
     const { error } = await supabase.rpc('registrar_pago', {
@@ -77,7 +76,7 @@ export default function Cobranza() {
     })
     setGuardando(false)
     if (error) return setError(mensajeError(error))
-    setAviso(`Pago de ${dinero(ec.total, m)} registrado.`)
+    setAviso(`Pago de ${dinero(ec.total)} registrado.`)
     setVersion((v) => v + 1)
     cargarCliente()
   }
@@ -165,7 +164,7 @@ export default function Cobranza() {
                           <span className="text-xs text-tinta-suave">
                             {p.items} {p.items === 1 ? 'ítem' : 'ítems'}
                           </span>
-                          <span className={`font-display text-lg font-extrabold tabular-nums ${vencido ? 'text-vencido' : ''}`}>{dinero(p.total, m)}</span>
+                          <span className={`font-display text-lg font-extrabold tabular-nums ${vencido ? 'text-vencido' : ''}`}>{dinero(p.total)}</span>
                         </button>
                       </li>
                     )
@@ -201,13 +200,13 @@ export default function Cobranza() {
                 <div className="no-imprimir mt-5 hidden items-center justify-end gap-4 border-t border-papel-borde pt-4 escritorio:flex">
                   {!esMasAntiguo && <Etiqueta color="ambar">Primero debe pagarse el período más antiguo</Etiqueta>}
                   <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo}>
-                    Registrar pago total de {dinero(ec.total, m)}
+                    Registrar pago total de {dinero(ec.total)}
                   </Boton>
                 </div>
               </section>
               <BarraAccion className="escritorio:hidden">
                 <Boton onClick={registrarPago} cargando={guardando} disabled={!esMasAntiguo} className="w-full">
-                  Registrar pago total de {dinero(ec.total, m)}
+                  Registrar pago total de {dinero(ec.total)}
                 </Boton>
                 {!esMasAntiguo && (
                   <p className="mt-2 text-center">
@@ -235,8 +234,8 @@ export default function Cobranza() {
                             Período {formatearFecha(p.fecha_vencimiento)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
                           </>
                         }
-                        detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
-                        monto={dinero(p.monto_pagado, m)}
+                        detalle={`mora ${dinero(p.interes_moratorio)} · int. ${dinero(p.interes_compensatorio)} · cap. ${dinero(p.capital)}`}
+                        monto={dinero(p.monto_pagado)}
                       />
                     ))}
                   </ul>
@@ -265,10 +264,10 @@ export default function Cobranza() {
                               {formatearFecha(p.fecha_efectiva_pago)} {p.dias_mora > 0 && <Etiqueta color="rojo">{p.dias_mora} d. mora</Etiqueta>}
                             </td>
                             <td>{formatearFecha(p.fecha_vencimiento)}</td>
-                            <td className="text-right">{dinero(p.interes_moratorio, m)}</td>
-                            <td className="text-right">{dinero(p.interes_compensatorio, m)}</td>
-                            <td className="text-right">{dinero(p.capital, m)}</td>
-                            <td className="text-right font-bold">{dinero(p.monto_pagado, m)}</td>
+                            <td className="text-right">{dinero(p.interes_moratorio)}</td>
+                            <td className="text-right">{dinero(p.interes_compensatorio)}</td>
+                            <td className="text-right">{dinero(p.capital)}</td>
+                            <td className="text-right font-bold">{dinero(p.monto_pagado)}</td>
                           </tr>
                         ))}
                       </tbody>

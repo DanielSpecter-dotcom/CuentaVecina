@@ -1,4 +1,3 @@
-import type { Moneda } from '../lib/codigos'
 import { formatearFecha } from '../lib/fechas'
 import { dinero } from '../lib/formato'
 import type { FilaCronograma } from '../lib/motorFinanciero'
@@ -7,7 +6,7 @@ import { Etiqueta } from './ui'
 
 type FilaCrono = FilaCronograma & { estado?: 'pendiente' | 'pagado' }
 
-export function Cronograma({ filas, moneda = 'PEN' }: { filas: FilaCrono[]; moneda?: Moneda }) {
+export function Cronograma({ filas }: { filas: FilaCrono[] }) {
   const total = (k: 'interes' | 'amortizacion' | 'cuota') => filas.reduce((s, f) => s + Number(f[k]), 0)
   const etiqueta = (f: FilaCrono) => f.estado && <Etiqueta color={f.estado === 'pagado' ? 'verde' : 'ambar'}>{f.estado}</Etiqueta>
   return (
@@ -24,12 +23,12 @@ export function Cronograma({ filas, moneda = 'PEN' }: { filas: FilaCrono[]; mone
                   Cuota {f.numero} {etiqueta(f)}
                 </>
               }
-              detalle={`int. ${dinero(f.interes, moneda)} · amort. ${dinero(f.amortizacion, moneda)} · saldo ${dinero(f.saldoFinal, moneda)}`}
-              monto={dinero(f.cuota, moneda)}
+              detalle={`int. ${dinero(f.interes)} · amort. ${dinero(f.amortizacion)} · saldo ${dinero(f.saldoFinal)}`}
+              monto={dinero(f.cuota)}
             />
           ))}
         </ul>
-        <RenglonTotal etiqueta="Totales">{dinero(total('cuota'), moneda)}</RenglonTotal>
+        <RenglonTotal etiqueta="Totales">{dinero(total('cuota'))}</RenglonTotal>
       </Hoja>
       <div className="hidden overflow-x-auto sm:block print:block">
         <table>
@@ -50,11 +49,11 @@ export function Cronograma({ filas, moneda = 'PEN' }: { filas: FilaCrono[]; mone
               <tr key={f.numero}>
                 <td>{f.numero}</td>
                 <td>{formatearFecha(f.fechaVencimiento)}</td>
-                <td className="text-right">{dinero(f.saldoInicial, moneda)}</td>
-                <td className="text-right">{dinero(f.interes, moneda)}</td>
-                <td className="text-right">{dinero(f.amortizacion, moneda)}</td>
-                <td className="text-right font-bold">{dinero(f.cuota, moneda)}</td>
-                <td className="text-right">{dinero(f.saldoFinal, moneda)}</td>
+                <td className="text-right">{dinero(f.saldoInicial)}</td>
+                <td className="text-right">{dinero(f.interes)}</td>
+                <td className="text-right">{dinero(f.amortizacion)}</td>
+                <td className="text-right font-bold">{dinero(f.cuota)}</td>
+                <td className="text-right">{dinero(f.saldoFinal)}</td>
                 {f.estado && <td>{etiqueta(f)}</td>}
               </tr>
             ))}
@@ -64,9 +63,9 @@ export function Cronograma({ filas, moneda = 'PEN' }: { filas: FilaCrono[]; mone
               <td colSpan={3} className="text-right">
                 Totales
               </td>
-              <td className="text-right">{dinero(total('interes'), moneda)}</td>
-              <td className="text-right">{dinero(total('amortizacion'), moneda)}</td>
-              <td className="text-right">{dinero(total('cuota'), moneda)}</td>
+              <td className="text-right">{dinero(total('interes'))}</td>
+              <td className="text-right">{dinero(total('amortizacion'))}</td>
+              <td className="text-right">{dinero(total('cuota'))}</td>
               <td />
             </tr>
           </tfoot>

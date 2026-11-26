@@ -1,15 +1,20 @@
-// Juegos de datos de prueba del motor financiero.
+// Pruebas del motor financiero (src/lib/motorFinanciero.ts), en el mismo orden que sus secciones:
+// §0 redondeo · §1 tasas · §2 ciclo · §3 fin de mes · §4 cuotas · §5 mora.
 // Los valores esperados se calcularon de forma independiente (Python, Decimal de 40 dígitos).
+// Los "Juegos de datos" 1 y 2 son los del informe (enunciado, sección 6.d).
 import { describe, expect, it } from 'vitest'
 import {
   calcularMora,
+  teaEquivalente,
   determinarCiclo,
   r2,
+  cuotaFrancesa,
   simularCuotas,
   simularFinDeMes,
   tasaEfectivaPeriodo,
   type CondicionesCredito,
 } from './motorFinanciero'
+import { textoCortePago } from './formato'
 
 const tea30: CondicionesCredito = {
   tasa: { tipo: 'EFECTIVA', valor: 30, periodoDias: 360 },
@@ -37,6 +42,12 @@ describe('conversión de tasas', () => {
   })
   it('TNA 24 % cap. diaria → TEP 21 días', () => {
     expect(tasaEfectivaPeriodo(tna24.tasa, 21)).toBeCloseTo(0.0140937286, 9)
+  })
+  it('TNA 24 % cap. diaria → TEA equivalente (para el tope BCRP)', () => {
+    expect(teaEquivalente(tna24.tasa)).toBeCloseTo(0.2711474996, 9)
+  })
+  it('0 días → TEP 0', () => {
+    expect(tasaEfectivaPeriodo(tea30.tasa, 0)).toBe(0)
   })
 })
 
@@ -110,5 +121,105 @@ describe('mora', () => {
   })
   it('pago puntual no genera mora', () => {
     expect(calcularMora(1000, '2026-09-26', '2026-09-26', tna24.tasaMora).interes).toBe(0)
+  })
+})
+
+describe('cuota francesa igual en todas las cuotas', () => {
+  const tns5: CondicionesCredito = {
+    tasa: { tipo: 'NOMINAL', valor: 5, periodoDias: 180, capitalizacionDias: 30 },
+    tasaMora: { tipo: 'EFECTIVA', valor: 50, periodoDias: 360 },
+    diaCorte: 20,
+    diaPago: 22,
+  }
+
+  it('venta real de 6 cuotas (C′ = 70.17, TNS 5 % cap. mensual): 6 × 12.04', () => {
+    expect(cuotaFrancesa(70.17, tasaEfectivaPeriodo(tns5.tasa, 30), 6)).toBe(12.04)
+  })
+
+  it('el cronograma cierra con todas las cuotas iguales y el ajuste mínimo en el interés de la última', () => {
+    const r = simularCuotas(70, 6, '2026-11-13', '10:00:00', tns5)
+    const cuotas = r.cronograma.map((f) => f.cuota)
+    expect(new Set(cuotas).size).toBe(1)
+    expect(r.cronograma.at(-1)!.saldoFinal).toBe(0)
+  })
+
+  // Propiedades para muchos casos: montos, tasas y plazos variados.
+  const tasas: CondicionesCredito['tasa'][] = [
+    { tipo: 'EFECTIVA', valor: 30, periodoDias: 360 },
+    { tipo: 'EFECTIVA', valor: 80, periodoDias: 360 },
+    { tipo: 'NOMINAL', valor: 24, periodoDias: 360, capitalizacionDias: 1 },
+    { tipo: 'NOMINAL', valor: 5, periodoDias: 180, capitalizacionDias: 30 },
+    { tipo: 'EFECTIVA', valor: 5, periodoDias: 30 },
+  ]
+  const montos = [2.6, 7, 12.38, 49.9, 100, 333.33, 999.99, 1000, 4850.5]
+  for (const tasa of tasas) {
+    for (const monto of montos) {
+      it(`${tasa.tipo} ${tasa.valor} % — S/ ${monto} en 1 a 24 cuotas`, () => {
+        const c = { ...tns5, tasa }
+        for (let n = 1; n <= 24; n++) {
+          let r
+          try {
+            r = simularCuotas(monto, n, '2026-11-25', '10:00:00', c)
+          } catch (e) {
+            // Solo se rechaza cuando la cuota sería de céntimos (no hay forma de repartir en partes iguales).
+            expect((e as Error).message).toContain('cuotas iguales')
+            expect(monto / n).toBeLessThan(0.5)
+            continue
+          }
+          const filas = r.cronograma
+          // Todas las cuotas iguales a R.
+          expect(filas.every((f) => f.cuota === r.valorCuota)).toBe(true)
+          // Saldo final 0 y amortizaciones que suman el capital capitalizado.
+          expect(filas.at(-1)!.saldoFinal).toBe(0)
+          expect(Math.round(filas.reduce((s, f) => s + f.amortizacion, 0) * 100)).toBe(Math.round(r.capitalCapitalizado * 100))
+          // Cada fila cuadra: interés + amortización = cuota; nada negativo.
+          for (const f of filas) {
+            expect(Math.round((f.interes + f.amortizacion) * 100)).toBe(Math.round(f.cuota * 100))
+            expect(f.interes).toBeGreaterThanOrEqual(0)
+            expect(f.amortizacion).toBeGreaterThan(0)
+          }
+          // El ajuste en el interés de la última cuota no supera lo que mueve 1 céntimo de R al final del plazo
+          // (ese céntimo se arrastra con intereses en cada período): 0.01 · Σ (1 + TEM)^k.
+          const ultima = filas.at(-1)!
+          const ajuste = Math.abs(ultima.interes - Math.round(ultima.saldoInicial * r.tem * 100) / 100)
+          let cota = 0
+          for (let k = 0; k < n; k++) cota += 0.01 * Math.pow(1 + r.tem, k)
+          if (r.valorCuota >= 5) expect(ajuste).toBeLessThanOrEqual(cota + 1e-9)
+          // Total = n × R.
+          expect(r.totalPagar).toBe(Math.round(r.valorCuota * n * 100) / 100)
+        }
+      })
+    }
+  }
+})
+
+describe('pago al mes siguiente del corte (corte 10, pago 5)', () => {
+  it('compra antes del corte: corte 10/11, pago 05/12', () => {
+    expect(determinarCiclo('2026-11-03', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2026-11-10', fechaPago: '2026-12-05', trasladada: false })
+  })
+  it('compra después del corte: corte 10/12, pago 05/01 del año siguiente', () => {
+    expect(determinarCiclo('2026-11-25', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2026-12-10', fechaPago: '2027-01-05', trasladada: true })
+  })
+  it('compra en diciembre después del corte: corte 10/01, pago 05/02', () => {
+    expect(determinarCiclo('2026-12-15', '10:00:00', 10, 5)).toEqual({ fechaCorte: '2027-01-10', fechaPago: '2027-02-05', trasladada: true })
+  })
+  it('día de pago igual al de corte: un mes después', () => {
+    expect(determinarCiclo('2026-11-03', '10:00:00', 10, 10).fechaPago).toBe('2026-12-10')
+  })
+  it('fin de mes: intereses por los días de la compra al pago (03/11 → 05/12 = 32 días)', () => {
+    const c: CondicionesCredito = { ...tea30, diaCorte: 10, diaPago: 5 }
+    const r = simularFinDeMes(100, '2026-11-03', '10:00:00', c)
+    expect(r.dias).toBe(32)
+    expect(r.fechaPago).toBe('2026-12-05')
+  })
+  it('cuotas: gracia hasta el pago y cuotas el 5 de cada mes siguiente', () => {
+    const c: CondicionesCredito = { ...tea30, diaCorte: 10, diaPago: 5 }
+    const r = simularCuotas(300, 3, '2026-11-03', '10:00:00', c)
+    expect(r.diasGracia).toBe(32)
+    expect(r.cronograma.map((f) => f.fechaVencimiento)).toEqual(['2027-01-05', '2027-02-05', '2027-03-05'])
+  })
+  it('texto de las condiciones', () => {
+    expect(textoCortePago(20, 26)).toBe('día 20 / día 26')
+    expect(textoCortePago(10, 5)).toBe('día 10 / día 5 del mes siguiente')
   })
 })
