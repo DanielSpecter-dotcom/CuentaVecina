@@ -42,10 +42,14 @@ Para empezar de cero antes de una demo: `supabase/scripts/reiniciar_demo.sql` (*
   internet) pero **nunca** guarda datos de Supabase. Al publicar una versión nueva, la app muestra "Actualizar".
   La PWA solo se activa en el build (`npm run build && npm run preview`, o en Vercel), no en `npm run dev`.
 - **Avisos dentro de la app (🔔):** tabla `notificaciones`, creada solo por triggers de la BD:
-  - Cliente: *Nueva compra registrada*, *Pago recibido*, recordatorios (3 días antes, 1 día antes, el mismo día) y
+  - Cliente: *Nueva compra registrada*, *Pago recibido*, *Listado de pago del corte* (al cerrarse su corte),
+    recordatorios (3 días antes, 1 día antes, el mismo día) y
     *Pago vencido* (1, 3, 7, 15 y 30 días).
-  - Administrador del negocio: *Cobranza del día* (cuántos vencen hoy y cuántos están vencidos).
+  - Administrador del negocio: *Corte cerrado* (clientes y total del listado de pago) y *Cobranza del día*
+    (cuántos vencen hoy y cuántos están vencidos).
   - Los recordatorios los genera `pg_cron` todos los días a las 8:00 a. m. de Lima (`fn_generar_recordatorios`).
+  - El listado de pago se genera en la fecha de corte, al pasar la hora de corte de la tienda: `pg_cron` revisa cada
+    15 minutos (`fn_generar_listados_corte`).
   - La campana se actualiza al instante con Supabase Realtime (respeta RLS).
 - **Push al celular (opcional):** cuando hay una notificación nueva y el usuario activó "Recibir avisos en este
   dispositivo", la BD llama (pg_net) a la Edge Function `enviar-push`, que la envía con Web Push. Para activarlo:
@@ -87,6 +91,10 @@ supabase/
   migrations/003_*.sql        Ajuste de fn_deuda_vigente (ya aplicada)
   migrations/004_*.sql        Quita al rol anon todo permiso salvo enviar solicitudes (defensa en profundidad)
   migrations/005_*.sql        Instalación inicial, notificaciones, recordatorios (pg_cron) y suscripciones push
+  migrations/006_*.sql        Cuota francesa igual en todas las cuotas
+  migrations/007_*.sql        Fecha de pago en el mes siguiente al corte (p. ej. corte 10, pago 5)
+  migrations/008_*.sql        Solo soles (moneda del crédito fija en S/)
+  migrations/009_*.sql        Listado de pago generado en la fecha de corte
   scripts/reiniciar_demo.sql  Deja la base en blanco para una demo (BORRA TODO)
   functions/_shared/          Utilidades comunes de las Edge Functions (CORS, errores, claves)
   functions/admin-usuarios/   Edge Function: crea usuarios sin correo, restablece claves

@@ -151,7 +151,7 @@ export interface EstadoCuenta {
 export interface Notificacion {
   id: string
   perfil_id: string
-  tipo: 'VENTA' | 'PAGO' | 'RECORDATORIO' | 'VENCIDO' | 'RESUMEN' | 'SISTEMA'
+  tipo: 'VENTA' | 'PAGO' | 'RECORDATORIO' | 'VENCIDO' | 'RESUMEN' | 'SISTEMA' | 'CORTE'
   titulo: string
   cuerpo: string
   url: string | null

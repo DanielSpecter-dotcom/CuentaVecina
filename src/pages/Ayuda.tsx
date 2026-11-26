@@ -6,7 +6,7 @@ import { Tarjeta } from '../components/ui'
 const PREGUNTAS = [
   {
     p: '¿Cómo se decide en qué mes se paga una compra?',
-    r: 'Cada cliente tiene un día de corte y un día de pago. Las compras hechas hasta la fecha y hora de corte entran a ese corte; las posteriores pasan al corte del mes siguiente. El pago vence el día de pago del mismo mes del corte o, si el día de pago es menor o igual al de corte (p. ej. corte 10 y pago 5), en el mes siguiente.',
+    r: 'Cada cliente tiene un día de corte y un día de pago. Las compras hechas hasta la fecha y hora de corte entran a ese corte; las posteriores pasan al corte del mes siguiente. El pago vence el día de pago del mismo mes del corte o, si el día de pago es menor o igual al de corte (p. ej. corte 10 y pago 5), en el mes siguiente. Al cerrarse el corte, el sistema genera el listado de pago de cada cliente y se lo avisa (también a la tienda).',
   },
   {
     p: '¿Cómo se calculan los intereses de una compra a fin de mes?',

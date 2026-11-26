@@ -1,7 +1,7 @@
 // Campana de notificaciones: muestra los avisos del usuario (nueva compra, pago recibido,
-// recordatorios, vencidos, resumen de cobranza) y se actualiza al instante con Supabase Realtime.
+// listado de pago al cierre del corte, recordatorios, vencidos, resumen de cobranza) y se actualiza al instante con Supabase Realtime.
 // Desde aquí también se activan las notificaciones push del celular.
-import { AlarmClock, Bell, BellOff, BellRing, CircleAlert, CircleCheck, ClipboardList, Info, ShoppingBag, type LucideIcon } from 'lucide-react'
+import { AlarmClock, Bell, BellOff, BellRing, CircleAlert, CircleCheck, ClipboardList, Info, ReceiptText, ShoppingBag, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -17,6 +17,7 @@ const ICONO: Record<Notificacion['tipo'], { icono: LucideIcon; color: string }> 
   VENCIDO: { icono: CircleAlert, color: 'bg-vencido-suave text-vencido' },
   RESUMEN: { icono: ClipboardList, color: 'bg-papel-borde text-tinta' },
   SISTEMA: { icono: Info, color: 'bg-papel-borde text-tinta' },
+  CORTE: { icono: ReceiptText, color: 'bg-cuota-suave text-tinta' },
 }
 
 function IconoAviso({ tipo }: { tipo: Notificacion['tipo'] }) {
