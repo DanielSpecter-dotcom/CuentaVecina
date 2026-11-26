@@ -13,7 +13,6 @@ interface ClienteMin {
   id: string
   nombre: string
   documento: string
-  moneda: boolean
 }
 
 interface Fila {
@@ -33,7 +32,7 @@ export default function Inicio() {
   useEffect(() => {
     async function cargar() {
       const [c, v, q] = await Promise.all([
-        supabase.from('clientes').select('id, nombre, documento, moneda').eq('estado', true),
+        supabase.from('clientes').select('id, nombre, documento').eq('estado', true),
         supabase
           .from('ventas')
           .select('cliente_id, fecha_pago_pactada, monto_capital, interes_compensatorio')
@@ -67,14 +66,12 @@ export default function Inicio() {
 
   const porFecha = [...Map.groupBy(filas, (f) => f.fechaPago)]
 
-  // Soles y dólares no se suman entre sí: cada moneda tiene su propio total.
-  const sumar = (lista: Fila[], usd: boolean) => r2(lista.filter((f) => f.cliente.moneda === usd).reduce((s, f) => s + f.capital + f.interes, 0))
+  const sumar = (lista: Fila[]) => r2(lista.reduce((s, f) => s + f.capital + f.interes, 0))
   const vencidas = filas.filter((f) => f.fechaPago < hoy)
   const deHoy = filas.filter((f) => f.fechaPago === hoy)
-  const total = { PEN: sumar(filas, false), USD: sumar(filas, true) }
-  const vencido = { PEN: sumar(vencidas, false), USD: sumar(vencidas, true) }
-  const totalHoy = { PEN: sumar(deHoy, false), USD: sumar(deHoy, true) }
-  const hayUsd = filas.some((f) => f.cliente.moneda)
+  const total = sumar(filas)
+  const vencido = sumar(vencidas)
+  const totalHoy = sumar(deHoy)
   const proxima = filas.find((f) => f.fechaPago >= hoy)?.fechaPago
   const masAntigua = vencidas[0]
   const clientesVencidos = new Set(vencidas.map((f) => f.cliente.id)).size
@@ -103,8 +100,7 @@ export default function Inicio() {
         <section aria-label="Cobros de hoy" className={`flex flex-col gap-2 ${ficha}`}>
           {deHoy.length > 0 ? (
             <>
-              {totalHoy.PEN > 0 && <MontoGrande>{dinero(totalHoy.PEN)}</MontoGrande>}
-              {totalHoy.USD > 0 && <MontoGrande>{dinero(totalHoy.USD, 'USD')}</MontoGrande>}
+              <MontoGrande>{dinero(totalHoy)}</MontoGrande>
               <p className="text-sm text-tinta-suave">
                 {deHoy.length === 1 ? deHoy[0].cliente.nombre : `${deHoy.length} clientes`} · {comprasHoy} {comprasHoy === 1 ? 'compra' : 'compras'}
               </p>
@@ -120,9 +116,7 @@ export default function Inicio() {
         {masAntigua ? (
           <SelloVencido>
             <p className="mt-1 font-display text-2xl font-extrabold text-vencido tabular-nums">
-              {vencido.PEN > 0 && dinero(vencido.PEN)}
-              {vencido.PEN > 0 && vencido.USD > 0 && ' · '}
-              {vencido.USD > 0 && dinero(vencido.USD, 'USD')}
+              {dinero(vencido)}
             </p>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm">
@@ -147,8 +141,7 @@ export default function Inicio() {
           <div>
             <dt className="text-xs text-tinta-suave">Por cobrar</dt>
             <dd className="text-lg font-bold tabular-nums escritorio:font-display escritorio:text-2xl escritorio:font-extrabold">
-              {dinero(total.PEN)}
-              {hayUsd && <span className="block">{dinero(total.USD, 'USD')}</span>}
+              {dinero(total)}
             </dd>
           </div>
           <div>
@@ -176,7 +169,6 @@ export default function Inicio() {
             <RenglonTitulo titulo="El cuaderno" />
             <ul>
               {filas.map((f, i) => {
-                const m = f.cliente.moneda ? 'USD' : 'PEN'
                 const venc = f.fechaPago < hoy
                 const repetida = i > 0 && filas[i - 1].fechaPago === f.fechaPago
                 const chipHoy = f.fechaPago === hoy && !repetida
@@ -196,15 +188,14 @@ export default function Inicio() {
                     }
                     tonoMargen={chipHoy ? 'hoy' : venc ? 'vencido' : 'normal'}
                     titulo={f.cliente.nombre}
-                    detalle={`${f.items} ${f.items === 1 ? 'ítem' : 'ítems'} · cap. ${dinero(f.capital, m)} · int. ${dinero(f.interes, m)}`}
-                    monto={dinero(f.capital + f.interes, m)}
+                    detalle={`${f.items} ${f.items === 1 ? 'ítem' : 'ítems'} · cap. ${dinero(f.capital)} · int. ${dinero(f.interes)}`}
+                    monto={dinero(f.capital + f.interes)}
                     tonoMonto={venc ? 'vencido' : 'normal'}
                   />
                 )
               })}
             </ul>
-            <RenglonTotal etiqueta={hayUsd ? 'Total S/' : 'Total'}>{dinero(total.PEN)}</RenglonTotal>
-            {hayUsd && <RenglonTotal etiqueta="Total US$">{dinero(total.USD, 'USD')}</RenglonTotal>}
+            <RenglonTotal etiqueta="Total">{dinero(total)}</RenglonTotal>
           </Hoja>
 
           <Tarjeta titulo="Listado de pagos por fecha de pago" className="hidden sm:block">
@@ -231,7 +222,6 @@ export default function Inicio() {
                       </th>
                     </tr>
                     {lista.map((f) => {
-                      const m = f.cliente.moneda ? 'USD' : 'PEN'
                       return (
                         <tr key={f.cliente.id}>
                           <td>
@@ -241,9 +231,9 @@ export default function Inicio() {
                             <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
                           </td>
                           <td className="text-right">{f.items}</td>
-                          <td className="text-right">{dinero(f.capital, m)}</td>
-                          <td className="text-right">{dinero(f.interes, m)}</td>
-                          <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes, m)}</td>
+                          <td className="text-right">{dinero(f.capital)}</td>
+                          <td className="text-right">{dinero(f.interes)}</td>
+                          <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes)}</td>
                         </tr>
                       )
                     })}
@@ -252,22 +242,12 @@ export default function Inicio() {
                 <tfoot>
                   <tr className="font-bold">
                     <td colSpan={4} className="text-right">
-                      {hayUsd ? 'Total S/' : 'Total'}
+                      Total
                     </td>
                     <td className="text-right text-base">
-                      <span className="border-b-[3px] border-double border-tinta">{dinero(total.PEN)}</span>
+                      <span className="border-b-[3px] border-double border-tinta">{dinero(total)}</span>
                     </td>
                   </tr>
-                  {hayUsd && (
-                    <tr className="font-bold">
-                      <td colSpan={4} className="text-right">
-                        Total US$
-                      </td>
-                      <td className="text-right text-base">
-                        <span className="border-b-[3px] border-double border-tinta">{dinero(total.USD, 'USD')}</span>
-                      </td>
-                    </tr>
-                  )}
                 </tfoot>
               </table>
             </div>

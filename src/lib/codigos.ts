@@ -24,11 +24,8 @@ export function describirTasa(nominal: boolean, valor: number, periodo: number, 
   return nominal ? `${sigla} ${valor} % cap. ${cap == null ? '—' : (PERIODOS[cap]?.nombre.toLowerCase() ?? '—')}` : `${sigla} ${valor} %`
 }
 
-/** moneda: false = Soles, true = Dólares */
-export type Moneda = 'PEN' | 'USD'
-export function moneda(usd: boolean): Moneda {
-  return usd ? 'USD' : 'PEN'
-}
+/** Moneda del crédito: la app trabaja solo en soles. */
+export const MONEDA_CREDITO = 'Soles (S/)'
 
 /** productos.modalidad_venta */
 export const MODALIDADES_PRODUCTO = [

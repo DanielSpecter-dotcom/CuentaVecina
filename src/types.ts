@@ -136,7 +136,7 @@ export interface EstadoCuenta {
   clienteId: string
   cliente: string
   documento: string
-  moneda: 'PEN' | 'USD'
+  moneda: 'PEN'
   fechaCorte: string
   fechaPago: string
   fechaEfectiva: string

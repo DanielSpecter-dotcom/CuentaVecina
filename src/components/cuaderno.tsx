@@ -2,7 +2,7 @@
 import { History, Minus, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { describirTasa, moneda } from '../lib/codigos'
+import { describirTasa, MONEDA_CREDITO } from '../lib/codigos'
 import { formatearFecha } from '../lib/fechas'
 import { dinero } from '../lib/formato'
 import { textoCortePago } from '../lib/motorFinanciero'
@@ -127,7 +127,6 @@ export function Sello({ children, className = 'grid grid-cols-2 gap-2.5' }: { ch
 
 /** Condiciones del crédito del cliente. Las tasas se muestran siempre. */
 export function Condiciones({ cliente, disponible, deuda }: { cliente: Cliente; disponible?: number | null; deuda?: number | null }) {
-  const m = moneda(cliente.moneda)
   const limite = Number(cliente.limite_credito)
   const usado = deuda != null ? deuda : disponible != null ? limite - disponible : null
   const pct = usado == null || limite <= 0 ? 0 : Math.min(100, Math.max(0, (usado / limite) * 100))
@@ -139,15 +138,16 @@ export function Condiciones({ cliente, disponible, deuda }: { cliente: Cliente; 
           etiqueta="Tasa moratoria"
           valor={describirTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria)}
         />
+        <Dato etiqueta="Moneda del crédito" valor={MONEDA_CREDITO} />
         <Dato etiqueta="Corte / pago" valor={textoCortePago(cliente.dia_corte, cliente.dia_pago)} />
-        {disponible !== undefined && <Dato etiqueta="Disponible" valor={disponible == null ? '…' : dinero(disponible, m)} />}
-        {deuda !== undefined && <Dato etiqueta="Deuda vigente (capital)" valor={deuda == null ? '…' : dinero(deuda, m)} />}
+        {disponible !== undefined && <Dato etiqueta="Disponible" valor={disponible == null ? '…' : dinero(disponible)} />}
+        {deuda !== undefined && <Dato etiqueta="Deuda vigente (capital)" valor={deuda == null ? '…' : dinero(deuda)} />}
       </dl>
       <div className="mt-3">
         <div aria-hidden="true" className="h-1.5 overflow-hidden rounded bg-papel-borde">
           <div className="h-full rounded bg-tinta" style={{ width: `${pct}%` }} />
         </div>
-        <p className="mt-1 text-xs text-tinta-suave">Límite de crédito {dinero(limite, m)}</p>
+        <p className="mt-1 text-xs text-tinta-suave">Límite de crédito {dinero(limite)}</p>
       </div>
     </Sello>
   )

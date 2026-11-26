@@ -133,7 +133,6 @@ supabase/
 
 - Cargar las tasas máximas BCRP vigentes (pantalla *Tasas BCRP*). Ojo: un comercio no es entidad financiera; revisar
   qué tope aplica ("operaciones entre personas ajenas al sistema financiero").
-- Precios de productos para clientes en dólares (hoy el catálogo está en soles).
 - Configurar las llaves VAPID para activar los avisos push en el celular (ver sección 3).
 - Generar los tipos de la BD (`supabase gen types`) para tipar el cliente de Supabase.
 - Versionar el esquema base: la migración `001` (tablas) se aplicó desde el panel y no está en el repo.

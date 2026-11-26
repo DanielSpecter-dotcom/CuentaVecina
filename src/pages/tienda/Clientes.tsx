@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { CamposTasa, type ValorTasa } from '../../components/CamposTasa'
-import { Avatar, Paso, Segmentado } from '../../components/cuaderno'
+import { Avatar, Paso } from '../../components/cuaderno'
 import { Alerta, Boton, Campo, Dato, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { describirTasa } from '../../lib/codigos'
+import { describirTasa, MONEDA_CREDITO } from '../../lib/codigos'
 import { dinero } from '../../lib/formato'
 import { pagoMesSiguiente, textoCortePago } from '../../lib/motorFinanciero'
 import { adminUsuarios, mensajeError, supabase } from '../../lib/supabase'
@@ -18,7 +18,6 @@ interface Form {
   telefono: string
   correo: string
   direccion: string
-  usd: boolean
   tasa: ValorTasa
   mora: ValorTasa
   limite_credito: string
@@ -33,7 +32,6 @@ const vacio: Form = {
   telefono: '',
   correo: '',
   direccion: '',
-  usd: false,
   tasa: { nominal: false, valor: '', periodo: 7, capitalizacion: null },
   mora: { nominal: false, valor: '', periodo: 7, capitalizacion: null },
   limite_credito: '500',
@@ -50,7 +48,6 @@ function aForm(c: Cliente): Form {
     telefono: c.telefono ?? '',
     correo: c.correo ?? '',
     direccion: c.direccion ?? '',
-    usd: c.moneda,
     tasa: { nominal: c.tipo_tasa, valor: String(c.tasa_compensatoria), periodo: c.periodo_tasa, capitalizacion: c.capitalizacion },
     mora: { nominal: c.tipo_tasa_moratoria, valor: String(c.tasa_moratoria), periodo: c.periodo_tasa_moratoria, capitalizacion: c.capitalizacion_moratoria },
     limite_credito: String(c.limite_credito),
@@ -100,7 +97,6 @@ export default function Clientes() {
       telefono: form.telefono || null,
       correo: form.correo || null,
       direccion: form.direccion || null,
-      moneda: form.usd,
       tipo_tasa: form.tasa.nominal,
       tasa_compensatoria: Number(form.tasa.valor),
       periodo_tasa: form.tasa.periodo,
@@ -213,7 +209,6 @@ export default function Clientes() {
           <ul className="grid gap-3 sm:grid-cols-2 min-[75rem]:hidden">
             {visibles.map((c) => {
               const perfil = usuarios.find((u) => u.cliente_id === c.id)
-              const m = c.moneda ? 'USD' : 'PEN'
               return (
                 <li key={c.id} className={`rounded-2xl border border-papel-borde p-4 ${c.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
                   <div className="flex items-center gap-3">
@@ -239,7 +234,7 @@ export default function Clientes() {
                       etiqueta="Límite"
                       valor={
                         <>
-                          {dinero(c.limite_credito, m)}
+                          {dinero(c.limite_credito)}
                           <span className="block text-xs font-normal text-tinta-suave">hasta {c.plazo_max_meses} cuotas</span>
                         </>
                       }
@@ -278,7 +273,6 @@ export default function Clientes() {
                 <tbody>
                   {visibles.map((c) => {
                     const perfil = usuarios.find((u) => u.cliente_id === c.id)
-                    const m = c.moneda ? 'USD' : 'PEN'
                     return (
                       <tr key={c.id} className={c.estado ? '' : 'bg-papel-borde/40'}>
                         <td className="min-w-44">
@@ -296,7 +290,7 @@ export default function Clientes() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap">
-                          <div className="font-bold">{dinero(c.limite_credito, m)}</div>
+                          <div className="font-bold">{dinero(c.limite_credito)}</div>
                           <div className="text-xs text-tinta-suave">hasta {c.plazo_max_meses} cuotas</div>
                           <div className="text-xs text-tinta-suave">
                             corte día {c.dia_corte} · pago día {c.dia_pago}
@@ -370,16 +364,8 @@ export default function Clientes() {
 
             <section className="space-y-3">
               <Paso n={4}>Crédito</Paso>
-              <Campo etiqueta="Moneda" ayuda="Moneda en la que se lleva el crédito del cliente.">
-                <Segmentado
-                  etiqueta="Moneda"
-                  valor={form.usd ? 'USD' : 'PEN'}
-                  onChange={(v) => setForm({ ...form, usd: v === 'USD' })}
-                  opciones={[
-                    { valor: 'PEN', titulo: 'Soles', detalle: 'S/' },
-                    { valor: 'USD', titulo: 'Dólares', detalle: 'US$' },
-                  ]}
-                />
+              <Campo etiqueta="Moneda del crédito" ayuda="Todos los créditos se llevan en soles, igual que los precios de los productos.">
+                <input value={MONEDA_CREDITO} readOnly aria-readonly="true" className="bg-papel" />
               </Campo>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <Campo etiqueta="Límite de crédito" ayuda="Deuda máxima permitida. No se aceptan compras que la superen.">

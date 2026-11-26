@@ -7,7 +7,6 @@ import { Dato, Etiqueta } from './ui'
 
 /** Ítems del período en renglones de cuaderno (incluye el renglón de mora). La usan Cobranza y Mi cuenta en el celular. */
 export function HojaEstadoCuenta({ ec, titulo, subtitulo, className = '' }: { ec: EstadoCuenta; titulo: ReactNode; subtitulo?: ReactNode; className?: string }) {
-  const m = ec.moneda
   return (
     <Hoja className={className}>
       <RenglonTitulo titulo={titulo} subtitulo={subtitulo} />
@@ -21,8 +20,8 @@ export function HojaEstadoCuenta({ ec, titulo, subtitulo, className = '' }: { ec
                 {it.descripcion} {it.tipo === 'CUOTA' && <Etiqueta color="azul">cuota</Etiqueta>}
               </>
             }
-            detalle={`${it.dias ?? '—'} días · cap. ${dinero(it.capital, m)} · int. ${dinero(it.interes, m)}`}
-            monto={dinero(it.total, m)}
+            detalle={`${it.dias ?? '—'} días · cap. ${dinero(it.capital)} · int. ${dinero(it.interes)}`}
+            monto={dinero(it.total)}
           />
         ))}
         {ec.interesMoratorio > 0 && (
@@ -31,19 +30,18 @@ export function HojaEstadoCuenta({ ec, titulo, subtitulo, className = '' }: { ec
             margen={<MargenFecha fecha={ec.fechaEfectiva} />}
             titulo="Intereses por mora"
             detalle={`${ec.diasMora} días de atraso`}
-            monto={dinero(ec.interesMoratorio, m)}
+            monto={dinero(ec.interesMoratorio)}
             tonoMonto="vencido"
           />
         )}
       </ul>
-      <RenglonTotal>{dinero(ec.total, m)}</RenglonTotal>
+      <RenglonTotal>{dinero(ec.total)}</RenglonTotal>
     </Hoja>
   )
 }
 
 /** Listado de pago de un período: compras ordenadas por fecha, intereses y mora. */
 export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: string }) {
-  const m = ec.moneda
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -93,9 +91,9 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
                   {it.descripcion} {it.tipo === 'CUOTA' && <Etiqueta color="azul">cuota</Etiqueta>}
                 </td>
                 <td className="text-right">{it.dias ?? '—'}</td>
-                <td className="text-right">{dinero(it.capital, m)}</td>
-                <td className="text-right">{dinero(it.interes, m)}</td>
-                <td className="text-right font-bold">{dinero(it.total, m)}</td>
+                <td className="text-right">{dinero(it.capital)}</td>
+                <td className="text-right">{dinero(it.interes)}</td>
+                <td className="text-right font-bold">{dinero(it.total)}</td>
               </tr>
             ))}
             {ec.interesMoratorio > 0 && (
@@ -104,8 +102,8 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
                 <td className="font-bold text-vencido">Intereses por mora</td>
                 <td className="text-right">{ec.diasMora}</td>
                 <td />
-                <td className="text-right">{dinero(ec.interesMoratorio, m)}</td>
-                <td className="text-right font-bold">{dinero(ec.interesMoratorio, m)}</td>
+                <td className="text-right">{dinero(ec.interesMoratorio)}</td>
+                <td className="text-right font-bold">{dinero(ec.interesMoratorio)}</td>
               </tr>
             )}
           </tbody>
@@ -114,10 +112,10 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
               <td colSpan={3} className="text-right">
                 Totales
               </td>
-              <td className="text-right">{dinero(ec.capital, m)}</td>
-              <td className="text-right">{dinero(Number(ec.interesCompensatorio) + Number(ec.interesMoratorio), m)}</td>
+              <td className="text-right">{dinero(ec.capital)}</td>
+              <td className="text-right">{dinero(Number(ec.interesCompensatorio) + Number(ec.interesMoratorio))}</td>
               <td className="text-right text-base">
-                <span className="border-b-[3px] border-double border-tinta">{dinero(ec.total, m)}</span>
+                <span className="border-b-[3px] border-double border-tinta">{dinero(ec.total)}</span>
               </td>
             </tr>
           </tfoot>
@@ -129,11 +127,10 @@ export function EstadoCuentaVista({ ec, tienda }: { ec: EstadoCuenta; tienda?: s
 }
 
 export function Prelacion({ ec }: { ec: EstadoCuenta }) {
-  const m = ec.moneda
   return (
     <p className="text-xs text-tinta-suave">
-      Imputación del pago (prelación): mora {dinero(ec.interesMoratorio, m)} → interés compensatorio {dinero(ec.interesCompensatorio, m)} →
-      capital {dinero(ec.capital, m)}.
+      Imputación del pago (prelación): mora {dinero(ec.interesMoratorio)} → interés compensatorio {dinero(ec.interesCompensatorio)} →
+      capital {dinero(ec.capital)}.
     </p>
   )
 }

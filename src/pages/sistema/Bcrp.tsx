@@ -7,14 +7,12 @@ import { mensajeError, supabase } from '../../lib/supabase'
 interface Parametro {
   id: string
   tasa_max_pen: number
-  tasa_max_usd: number
   tasa_max_mor_pen: number
-  tasa_max_mor_usd: number
   vigente_desde: string
   vigente_hasta: string
 }
 
-const vacio = { tasa_max_pen: '', tasa_max_usd: '', vigente_desde: '', vigente_hasta: '' }
+const vacio = { tasa_max_pen: '', vigente_desde: '', vigente_hasta: '' }
 
 export default function Bcrp() {
   const [lista, setLista] = useState<Parametro[]>([])
@@ -38,13 +36,10 @@ export default function Bcrp() {
     setGuardando(true)
     setError(null)
     const pen = Number(f.tasa_max_pen)
-    const usd = Number(f.tasa_max_usd)
     const { error } = await supabase.from('parametros_bcrp').insert({
       tasa_max_pen: pen,
-      tasa_max_usd: usd,
       // Circular BCRP: la tasa máxima moratoria es el 15 % de la compensatoria.
       tasa_max_mor_pen: Number((pen * 0.15).toFixed(7)),
-      tasa_max_mor_usd: Number((usd * 0.15).toFixed(7)),
       vigente_desde: f.vigente_desde,
       vigente_hasta: f.vigente_hasta,
     })
@@ -80,11 +75,8 @@ export default function Bcrp() {
         <form onSubmit={guardar} className="space-y-4 escritorio:rounded-2xl escritorio:border escritorio:border-papel-borde escritorio:bg-white escritorio:p-5">
           <h2 className="text-lg font-bold">Nuevo registro</h2>
           <div className="grid gap-4 sm:grid-cols-2 escritorio:grid-cols-1">
-            <Campo etiqueta="TEA máx. soles (%)" ayuda="Tasa efectiva anual máxima en moneda nacional, en porcentaje (p. ej. 99.5).">
+            <Campo etiqueta="TEA máx. en soles (%)" ayuda="Tasa efectiva anual máxima para créditos en soles, en porcentaje (p. ej. 99.5).">
               <input type="number" step="0.0000001" min="0" value={f.tasa_max_pen} onChange={set('tasa_max_pen')} required />
-            </Campo>
-            <Campo etiqueta="TEA máx. dólares (%)" ayuda="Tasa efectiva anual máxima en moneda extranjera, en porcentaje.">
-              <input type="number" step="0.0000001" min="0" value={f.tasa_max_usd} onChange={set('tasa_max_usd')} required />
             </Campo>
             <Campo etiqueta="Vigente desde" ayuda="Primer día de vigencia.">
               <input type="date" value={f.vigente_desde} onChange={set('vigente_desde')} required />
@@ -120,9 +112,9 @@ export default function Bcrp() {
                       }
                       detalle={
                         <>
-                          TEA máx. S/ {pct(p.tasa_max_pen)} · US$ {pct(p.tasa_max_usd)}
+                          TEA máx. {pct(p.tasa_max_pen)}
                           <br />
-                          Moratoria máx. S/ {pct(p.tasa_max_mor_pen)} · US$ {pct(p.tasa_max_mor_usd)}
+                          Moratoria máx. {pct(p.tasa_max_mor_pen)}
                         </>
                       }
                     />
@@ -148,15 +140,8 @@ export default function Bcrp() {
                             </span>{' '}
                             {esVigente(p) && <Etiqueta color="verde">vigente</Etiqueta>}
                           </td>
-                          {/* Soles arriba y dólares abajo: cuatro tasas en dos columnas que entran al lado del formulario. */}
-                          <td className="text-right whitespace-nowrap">
-                            <div className="font-bold">S/ {pct(p.tasa_max_pen)}</div>
-                            <div className="text-xs text-tinta-suave">US$ {pct(p.tasa_max_usd)}</div>
-                          </td>
-                          <td className="text-right whitespace-nowrap">
-                            <div className="font-bold">S/ {pct(p.tasa_max_mor_pen)}</div>
-                            <div className="text-xs text-tinta-suave">US$ {pct(p.tasa_max_mor_usd)}</div>
-                          </td>
+                          <td className="text-right font-bold whitespace-nowrap">{pct(p.tasa_max_pen)}</td>
+                          <td className="text-right font-bold whitespace-nowrap">{pct(p.tasa_max_mor_pen)}</td>
                         </tr>
                       ))}
                     </tbody>

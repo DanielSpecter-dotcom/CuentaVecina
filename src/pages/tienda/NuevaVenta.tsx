@@ -6,7 +6,7 @@ import { BarraAccion, Chips, Condiciones, Paso, Segmentado, SelectorCliente, Sel
 import { Cronograma } from '../../components/Cronograma'
 import { Alerta, Boton, Campo, Etiqueta } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { aTasa, moneda as aMoneda } from '../../lib/codigos'
+import { aTasa } from '../../lib/codigos'
 import { fechaHoraLima, formatearFecha } from '../../lib/fechas'
 import { dinero, tasaPct } from '../../lib/formato'
 import { pagoMesSiguiente, r2, simularCuotas, simularFinDeMes, type CondicionesCredito } from '../../lib/motorFinanciero'
@@ -55,7 +55,6 @@ export default function NuevaVenta() {
 
   const cliente = clientes.find((c) => c.id === clienteId)
   const producto = productos.find((p) => p.id === productoId)
-  const m = aMoneda(cliente?.moneda ?? false)
 
   // La deuda se guarda con la consulta a la que pertenece (cliente + última venta): sin vaciarla en el efecto.
   const claveDeuda = `${clienteId}|${registrada ?? ''}`
@@ -263,25 +262,25 @@ export default function NuevaVenta() {
               <div className="mt-2 space-y-3">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="font-display text-4xl font-extrabold tracking-tight tabular-nums">
-                    {simulacion.modalidad === 'FIN_DE_MES' ? dinero(simulacion.total, m) : `${simulacion.cronograma.length} × ${dinero(simulacion.valorCuota, m)}`}
+                    {simulacion.modalidad === 'FIN_DE_MES' ? dinero(simulacion.total) : `${simulacion.cronograma.length} × ${dinero(simulacion.valorCuota)}`}
                   </p>
                   <Etiqueta color={simulacion.trasladada ? 'ambar' : 'verde'}>{simulacion.trasladada ? 'pasa al mes siguiente' : 'entra en este ciclo'}</Etiqueta>
                 </div>
                 <dl className="divide-y divide-dashed divide-linea border-y border-dashed border-linea text-sm">
-                  <FilaTicket etiqueta="Capital">{dinero(simulacion.capital, m)}</FilaTicket>
+                  <FilaTicket etiqueta="Capital">{dinero(simulacion.capital)}</FilaTicket>
                   {simulacion.modalidad === 'FIN_DE_MES' ? (
                     <>
                       <FilaTicket etiqueta="Días de interés">{simulacion.dias}</FilaTicket>
                       <FilaTicket etiqueta={`TEP (${simulacion.dias} días)`}>{tasaPct(simulacion.tep)}</FilaTicket>
-                      <FilaTicket etiqueta="Interés">{dinero(simulacion.interes, m)}</FilaTicket>
+                      <FilaTicket etiqueta="Interés">{dinero(simulacion.interes)}</FilaTicket>
                     </>
                   ) : (
                     <>
                       <FilaTicket etiqueta="Gracia total">{simulacion.diasGracia} días</FilaTicket>
                       <FilaTicket etiqueta="TEP de gracia">{tasaPct(simulacion.tepGracia)}</FilaTicket>
-                      <FilaTicket etiqueta="Capital capitalizado">{dinero(simulacion.capitalCapitalizado, m)}</FilaTicket>
+                      <FilaTicket etiqueta="Capital capitalizado">{dinero(simulacion.capitalCapitalizado)}</FilaTicket>
                       <FilaTicket etiqueta="TEM (30 días)">{tasaPct(simulacion.tem)}</FilaTicket>
-                      <FilaTicket etiqueta="Cuota mensual">{dinero(simulacion.valorCuota, m)}</FilaTicket>
+                      <FilaTicket etiqueta="Cuota mensual">{dinero(simulacion.valorCuota)}</FilaTicket>
                     </>
                   )}
                   <FilaTicket etiqueta="Corte / pago">
@@ -291,7 +290,7 @@ export default function NuevaVenta() {
 
                 {simulacion.modalidad === 'CUOTAS' &&
                   (verCronograma ? (
-                    <Cronograma filas={simulacion.cronograma} moneda={m} />
+                    <Cronograma filas={simulacion.cronograma} />
                   ) : (
                     <div>
                       <ol className="text-sm tabular-nums">
@@ -299,8 +298,8 @@ export default function NuevaVenta() {
                           <li key={f.numero} className="grid grid-cols-[1.75rem_1fr_auto_auto] items-baseline gap-2 border-b border-dashed border-linea py-1.5">
                             <span className="text-tinta-suave">{f.numero}</span>
                             <span>{formatearFecha(f.fechaVencimiento)}</span>
-                            <span className="text-xs text-tinta-suave">int. {dinero(f.interes, m)}</span>
-                            <span className="font-bold">{dinero(f.cuota, m)}</span>
+                            <span className="text-xs text-tinta-suave">int. {dinero(f.interes)}</span>
+                            <span className="font-bold">{dinero(f.cuota)}</span>
                           </li>
                         ))}
                       </ol>
@@ -312,7 +311,7 @@ export default function NuevaVenta() {
 
                 <div className="flex items-center justify-between gap-3 pt-1">
                   <span className="font-bold">Total a pagar</span>
-                  <span className="border-b-[3px] border-double border-tinta font-display text-xl font-extrabold tabular-nums">{dinero(totalSimulado, m)}</span>
+                  <span className="border-b-[3px] border-double border-tinta font-display text-xl font-extrabold tabular-nums">{dinero(totalSimulado)}</span>
                 </div>
                 <p className="text-xs text-tinta-suave">
                   Simulación en el navegador. Al registrar, la base de datos recalcula con las mismas fórmulas y guarda el resultado oficial.
@@ -323,7 +322,7 @@ export default function NuevaVenta() {
             <div className="mt-4 hidden space-y-3 border-t border-papel-borde pt-4 escritorio:block">
               {excede && <Alerta>La compra excede el crédito disponible del cliente.</Alerta>}
               <Boton type="submit" cargando={guardando} disabled={!simulacion || !!excede || !!cuotasInvalidas} className="w-full">
-                Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado, m)}`}
+                Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado)}`}
               </Boton>
             </div>
           </section>
@@ -333,7 +332,7 @@ export default function NuevaVenta() {
         <div className="pt-6 pb-3 escritorio:hidden">{excede && <Alerta>La compra excede el crédito disponible del cliente.</Alerta>}</div>
         <BarraAccion className="escritorio:hidden">
           <Boton type="submit" cargando={guardando} disabled={!simulacion || !!excede || !!cuotasInvalidas} className="w-full">
-            Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado, m)}`}
+            Registrar venta{totalSimulado != null && ` · ${dinero(totalSimulado)}`}
           </Boton>
         </BarraAccion>
       </form>

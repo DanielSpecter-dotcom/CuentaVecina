@@ -5,7 +5,6 @@ import { Cronograma } from '../../components/Cronograma'
 import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components/EstadoCuentaVista'
 import { Alerta, Dato, Etiqueta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { moneda as aMoneda } from '../../lib/codigos'
 import { diffDias, formatearFecha, hoyLima } from '../../lib/fechas'
 import { dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
@@ -65,7 +64,6 @@ export default function MiCuenta() {
 
   if (error) return <Alerta>{error}</Alerta>
   if (!cliente) return <p role="status" className="text-tinta-suave">Cargando…</p>
-  const m = aMoneda(cliente.moneda)
   const ventasCuotas = ventas.filter((v) => v.modalidad_pago)
   const faltan = ec ? diffDias(hoyLima(), ec.fechaPago) : 0
 
@@ -90,7 +88,7 @@ export default function MiCuenta() {
           {ec ? (
             <>
               <p className="text-sm text-tinta-suave">Tu próximo pago es</p>
-              <MontoGrande>{dinero(ec.total, m)}</MontoGrande>
+              <MontoGrande>{dinero(ec.total)}</MontoGrande>
               <p>
                 hasta el{' '}
                 <strong>
@@ -127,7 +125,7 @@ export default function MiCuenta() {
             </div>
             {periodos.length > 1 && (
               <p className="text-xs text-tinta-suave">
-                Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total, m)})`).join(' · ')}
+                Pagos siguientes: {periodos.slice(1).map((p) => `${formatearFecha(p.fecha_pago)} (${dinero(p.total)})`).join(' · ')}
               </p>
             )}
           </section>
@@ -164,7 +162,7 @@ export default function MiCuenta() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-tinta-suave">Cuota mensual</p>
-                          <p className="font-display text-2xl font-extrabold tabular-nums">{dinero(v.valor_cuota, m)}</p>
+                          <p className="font-display text-2xl font-extrabold tabular-nums">{dinero(v.valor_cuota)}</p>
                         </div>
                       </div>
 
@@ -205,7 +203,7 @@ export default function MiCuenta() {
                       <dl className="grid grid-cols-3 gap-3 border-t border-dashed border-papel-borde pt-3 text-sm">
                         <Dato etiqueta="Pagadas" valor={`${deLaVenta.length - pendientes.length} de ${deLaVenta.length}`} />
                         <Dato etiqueta="Próxima cuota" valor={proxima ? formatearFecha(proxima.fecha_vencimiento) : '—'} />
-                        <Dato etiqueta="Saldo por pagar" valor={dinero(saldo, m)} />
+                        <Dato etiqueta="Saldo por pagar" valor={dinero(saldo)} />
                       </dl>
                       <button
                         type="button"
@@ -219,7 +217,6 @@ export default function MiCuenta() {
                       {abierto && (
                         <div className="mt-2">
                           <Cronograma
-                            moneda={m}
                             filas={deLaVenta.map((q) => ({
                               numero: q.numero_cuota,
                               fechaVencimiento: q.fecha_vencimiento,
@@ -286,7 +283,7 @@ export default function MiCuenta() {
                             <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
                           </>
                         }
-                        monto={dinero(v.monto_capital, m)}
+                        monto={dinero(v.monto_capital)}
                       />
                     ))}
                   </ul>
@@ -305,8 +302,8 @@ export default function MiCuenta() {
                         key={p.id}
                         margen={<MargenFecha fecha={p.fecha_efectiva_pago} />}
                         titulo={`Pago del ${formatearFecha(p.fecha_efectiva_pago)}`}
-                        detalle={`mora ${dinero(p.interes_moratorio, m)} · int. ${dinero(p.interes_compensatorio, m)} · cap. ${dinero(p.capital, m)}`}
-                        monto={dinero(p.monto_pagado, m)}
+                        detalle={`mora ${dinero(p.interes_moratorio)} · int. ${dinero(p.interes_compensatorio)} · cap. ${dinero(p.capital)}`}
+                        monto={dinero(p.monto_pagado)}
                       />
                     ))}
                   </ul>

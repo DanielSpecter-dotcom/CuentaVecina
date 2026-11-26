@@ -1,13 +1,9 @@
-import type { Moneda } from './codigos'
+/** Todos los montos de la app están en soles (S/). */
+const soles = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 })
 
-const formatos: Record<Moneda, Intl.NumberFormat> = {
-  PEN: new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 }),
-  USD: new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }),
-}
-
-export function dinero(monto: number | string | null | undefined, m: Moneda = 'PEN'): string {
+export function dinero(monto: number | string | null | undefined): string {
   if (monto == null || monto === '') return '—'
-  return formatos[m].format(Number(monto))
+  return soles.format(Number(monto))
 }
 
 /** Tasa (fracción) → porcentaje con 7 decimales, como pide el Anexo A. */
