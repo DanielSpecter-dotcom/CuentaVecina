@@ -6,12 +6,9 @@ import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components
 import { Alerta, Dato, Etiqueta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { diffDias, formatearFecha, hoyLima } from '../../lib/fechas'
-import { dinero } from '../../lib/formato'
+import { detalleVenta, dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Cuota, EstadoCuenta, Pago, PeriodoPendiente, Venta } from '../../types'
-
-/** "Arroz × 2, Aceite × 1": las líneas de la boleta. */
-const detalleVenta = (v: Venta) => (v.venta_items ?? []).map((i) => `${i.productos?.nombre ?? '—'} × ${i.cantidad}`).join(', ')
 
 const diaSemana =(fecha: string) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', weekday: 'long' }).format(new Date(`${fecha}T00:00:00Z`))
 
@@ -282,6 +279,7 @@ export default function MiCuenta() {
                         }
                         detalle={
                           <>
+                            {Number(v.pago_inicial) > 0 && `Cuota inicial ${dinero(v.pago_inicial)} · `}
                             {v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`} ·{' '}
                             <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
                           </>

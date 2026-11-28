@@ -70,6 +70,7 @@ export interface Venta {
   fecha_hora_compra: string
   modalidad_pago: boolean
   num_cuotas: number | null
+  pago_inicial: number
   monto_capital: number
   interes_compensatorio: number
   capital_capitalizado: number | null

@@ -39,6 +39,8 @@ export default function NuevaVenta() {
   const [items, setItems] = useState<{ productoId: string; cantidad: string }[]>([])
   const [enCuotas, setEnCuotas] = useState(false)
   const [numCuotas, setNumCuotas] = useState('3')
+  // Parte de la boleta que el cliente paga en efectivo al momento (el resto va a crédito).
+  const [pagoInicial, setPagoInicial] = useState('')
   const [fechaHora, setFechaHora] = useState(ahoraLocal())
   const [deudaDe, setDeudaDe] = useState<{ clave: string; valor: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +61,8 @@ export default function NuevaVenta() {
     return producto ? [{ ...i, producto, subtotal: r2(Number(producto.precio_lista) * Number(i.cantidad)) }] : []
   })
   const cantidadesValidas = lineas.every((l) => Number.isInteger(Number(l.cantidad)) && Number(l.cantidad) >= 1)
-  const capitalBoleta = r2(lineas.reduce((t, l) => t + l.subtotal, 0))
+  const totalBoleta = r2(lineas.reduce((t, l) => t + l.subtotal, 0))
+  const inicial = r2(Number(pagoInicial) || 0)
 
   // La deuda se guarda con la consulta a la que pertenece (cliente + última venta): sin vaciarla en el efecto.
   const claveDeuda = `${clienteId}|${registrada ?? ''}`
@@ -80,8 +83,9 @@ export default function NuevaVenta() {
       horaCorte: tienda.hora_corte,
     }
     const [fecha, hora] = fechaHora.split('T')
-    // Capital = suma de las líneas de la boleta (cada una a precio de lista).
-    const capital = capitalBoleta
+    // Capital a crédito = total de la boleta (líneas a precio de lista) − cuota inicial.
+    if (inicial < 0 || inicial >= totalBoleta) return { error: 'La cuota inicial debe ser menor que el total de la boleta.' }
+    const capital = r2(totalBoleta - inicial)
     try {
       return enCuotas
         ? simularCuotas(capital, Number(numCuotas), fecha, `${hora}:00`, cond)
@@ -90,7 +94,7 @@ export default function NuevaVenta() {
       // Motivo visible (p. ej. una cuota demasiado pequeña para repartirse en partes iguales).
       return { error: e instanceof Error ? e.message : 'No se pudo calcular la simulación.' }
     }
-  }, [cliente, lineas.length, cantidadesValidas, capitalBoleta, tienda, enCuotas, numCuotas, fechaHora])
+  }, [cliente, lineas.length, cantidadesValidas, totalBoleta, inicial, tienda, enCuotas, numCuotas, fechaHora])
   const simulacion = resultadoSimulacion && !('error' in resultadoSimulacion) ? resultadoSimulacion : null
   const errorSimulacion = resultadoSimulacion && 'error' in resultadoSimulacion ? resultadoSimulacion.error : null
 
@@ -109,11 +113,13 @@ export default function NuevaVenta() {
       p_num_cuotas: enCuotas ? Number(numCuotas) : undefined,
       // datetime-local está en hora de Lima (Perú no tiene horario de verano: UTC−5).
       p_fecha_hora: `${fechaHora}:00-05:00`,
+      p_pago_inicial: inicial > 0 ? inicial : undefined,
     })
     setGuardando(false)
     if (error) return setError(mensajeError(error))
     setRegistrada(data as string)
     setItems([])
+    setPagoInicial('')
     setFechaHora(ahoraLocal())
   }
 
@@ -242,8 +248,15 @@ export default function NuevaVenta() {
             <section className="space-y-3">
               <Paso n={3}>Cómo paga</Paso>
               <Campo
-                etiqueta="Forma de pago"
-                ayuda="Se elige para toda la boleta. Fin de mes: una sola armada en la fecha de pago. En cuotas: método francés, la primera cuota vence el mes siguiente a la fecha de pago del ciclo."
+                etiqueta="Cuota inicial (S/)"
+                opcional
+                ayuda={`Lo que el cliente paga hoy. El resto${totalBoleta > 0 ? ` (${dinero(r2(totalBoleta - inicial))})` : ''} queda a crédito, a fin de mes o en cuotas. Debe ser menor que el total de la boleta.`}
+              >
+                <input type="number" inputMode="decimal" step="0.01" min="0" max={totalBoleta > 0 ? r2(totalBoleta - 0.01) : undefined} value={pagoInicial} onChange={(e) => setPagoInicial(e.target.value)} placeholder="0.00" />
+              </Campo>
+              <Campo
+                etiqueta="Forma de pago del saldo"
+                ayuda="Se elige para todo el saldo a crédito. Fin de mes: una sola armada en la fecha de pago. En cuotas: método francés, la primera cuota vence el mes siguiente a la fecha de pago del ciclo."
               >
                 <Segmentado
                   etiqueta="Forma de pago"
@@ -299,7 +312,15 @@ export default function NuevaVenta() {
                       {dinero(l.subtotal)}
                     </FilaTicket>
                   ))}
-                  <FilaTicket etiqueta="Capital (total boleta)">{dinero(simulacion.capital)}</FilaTicket>
+                  {inicial > 0 ? (
+                    <>
+                      <FilaTicket etiqueta="Total boleta">{dinero(totalBoleta)}</FilaTicket>
+                      <FilaTicket etiqueta="Cuota inicial">− {dinero(inicial)}</FilaTicket>
+                      <FilaTicket etiqueta="Capital a crédito">{dinero(simulacion.capital)}</FilaTicket>
+                    </>
+                  ) : (
+                    <FilaTicket etiqueta="Capital (total boleta)">{dinero(simulacion.capital)}</FilaTicket>
+                  )}
                   {simulacion.modalidad === 'FIN_DE_MES' ? (
                     <>
                       <FilaTicket etiqueta="Días de interés">{simulacion.dias}</FilaTicket>
@@ -342,7 +363,7 @@ export default function NuevaVenta() {
                   ))}
 
                 <div className="flex items-center justify-between gap-3 pt-1">
-                  <span className="font-bold">Total a pagar</span>
+                  <span className="font-bold">{inicial > 0 ? 'Total a pagar a crédito' : 'Total a pagar'}</span>
                   <span className="border-b-[3px] border-double border-tinta font-display text-xl font-extrabold tabular-nums">{dinero(totalSimulado)}</span>
                 </div>
                 <p className="text-xs text-tinta-suave">
