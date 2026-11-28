@@ -1,4 +1,4 @@
-import { History } from 'lucide-react'
+import { History, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Buscador, useRecientes } from '../../components/Buscador'
@@ -35,9 +35,9 @@ export default function NuevaVenta() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [clienteId, setClienteId] = useState('')
-  const [productoId, setProductoId] = useState('')
-  const [cantidad, setCantidad] = useState('1')
-  const [enCuotasElegido, setEnCuotas] = useState(false)
+  // La boleta: una línea por producto (la cantidad es texto, como en el Stepper).
+  const [items, setItems] = useState<{ productoId: string; cantidad: string }[]>([])
+  const [enCuotas, setEnCuotas] = useState(false)
   const [numCuotas, setNumCuotas] = useState('3')
   const [fechaHora, setFechaHora] = useState(ahoraLocal())
   const [deudaDe, setDeudaDe] = useState<{ clave: string; valor: number } | null>(null)
@@ -54,7 +54,12 @@ export default function NuevaVenta() {
   }, [])
 
   const cliente = clientes.find((c) => c.id === clienteId)
-  const producto = productos.find((p) => p.id === productoId)
+  const lineas = items.flatMap((i) => {
+    const producto = productos.find((p) => p.id === i.productoId)
+    return producto ? [{ ...i, producto, subtotal: r2(Number(producto.precio_lista) * Number(i.cantidad)) }] : []
+  })
+  const cantidadesValidas = lineas.every((l) => Number.isInteger(Number(l.cantidad)) && Number(l.cantidad) >= 1)
+  const capitalBoleta = r2(lineas.reduce((t, l) => t + l.subtotal, 0))
 
   // La deuda se guarda con la consulta a la que pertenece (cliente + última venta): sin vaciarla en el efecto.
   const claveDeuda = `${clienteId}|${registrada ?? ''}`
@@ -64,14 +69,9 @@ export default function NuevaVenta() {
     supabase.rpc('fn_deuda_vigente', { p_cliente_id: clienteId }).then(({ data }) => setDeudaDe({ clave: claveDeuda, valor: Number(data ?? 0) }))
   }, [clienteId, claveDeuda])
 
-  // La modalidad se ajusta a lo que permite el producto (0 fin de mes, 1 cuotas, 2 ambas).
-  const enCuotas = producto?.modalidad_venta === 0 ? false : producto?.modalidad_venta === 1 ? true : enCuotasElegido
-
   // Simulación inmediata con el motor en TypeScript (la BD recalcula al guardar).
   const resultadoSimulacion = useMemo(() => {
-    if (!cliente || !producto || !tienda || !fechaHora) return null
-    const cant = Number(cantidad)
-    if (!(cant >= 1)) return null
+    if (!cliente || lineas.length === 0 || !cantidadesValidas || !tienda || !fechaHora) return null
     const cond: CondicionesCredito = {
       tasa: aTasa(cliente.tipo_tasa, cliente.tasa_compensatoria, cliente.periodo_tasa, cliente.capitalizacion),
       tasaMora: aTasa(cliente.tipo_tasa_moratoria, cliente.tasa_moratoria, cliente.periodo_tasa_moratoria, cliente.capitalizacion_moratoria),
@@ -80,7 +80,8 @@ export default function NuevaVenta() {
       horaCorte: tienda.hora_corte,
     }
     const [fecha, hora] = fechaHora.split('T')
-    const capital = r2(Number(producto.precio_lista) * cant)
+    // Capital = suma de las líneas de la boleta (cada una a precio de lista).
+    const capital = capitalBoleta
     try {
       return enCuotas
         ? simularCuotas(capital, Number(numCuotas), fecha, `${hora}:00`, cond)
@@ -89,7 +90,7 @@ export default function NuevaVenta() {
       // Motivo visible (p. ej. una cuota demasiado pequeña para repartirse en partes iguales).
       return { error: e instanceof Error ? e.message : 'No se pudo calcular la simulación.' }
     }
-  }, [cliente, producto, tienda, cantidad, enCuotas, numCuotas, fechaHora])
+  }, [cliente, lineas.length, cantidadesValidas, capitalBoleta, tienda, enCuotas, numCuotas, fechaHora])
   const simulacion = resultadoSimulacion && !('error' in resultadoSimulacion) ? resultadoSimulacion : null
   const errorSimulacion = resultadoSimulacion && 'error' in resultadoSimulacion ? resultadoSimulacion.error : null
 
@@ -99,13 +100,12 @@ export default function NuevaVenta() {
 
   async function registrar(e: SubmitEvent) {
     e.preventDefault()
-    if (!cliente || !producto) return
+    if (!cliente || lineas.length === 0) return
     setError(null)
     setGuardando(true)
     const { data, error } = await supabase.rpc('registrar_venta', {
       p_cliente_id: cliente.id,
-      p_producto_id: producto.id,
-      p_cantidad: Number(cantidad),
+      p_items: lineas.map((l) => ({ productoId: l.productoId, cantidad: Number(l.cantidad) })),
       p_num_cuotas: enCuotas ? Number(numCuotas) : undefined,
       // datetime-local está en hora de Lima (Perú no tiene horario de verano: UTC−5).
       p_fecha_hora: `${fechaHora}:00-05:00`,
@@ -113,18 +113,25 @@ export default function NuevaVenta() {
     setGuardando(false)
     if (error) return setError(mensajeError(error))
     setRegistrada(data as string)
-    setProductoId('')
-    setCantidad('1')
+    setItems([])
     setFechaHora(ahoraLocal())
   }
 
   // Debajo del buscador: los productos recientes (o los primeros, si aún no hay historial).
   const productosRecientes = idsProductos.map((id) => productos.find((p) => p.id === id)).filter((p): p is Producto => !!p)
   const filaProductos = productosRecientes.length > 0 ? productosRecientes : productos.slice(0, PRODUCTOS_SUGERIDOS)
-  function elegirProducto(id: string) {
+  // Elegir un producto lo agrega a la boleta (o suma una unidad si ya está).
+  function agregarProducto(id: string) {
     registrarProducto(id)
-    setProductoId(id)
+    setRegistrada(null)
+    setItems((xs) =>
+      xs.some((x) => x.productoId === id)
+        ? xs.map((x) => (x.productoId === id ? { ...x, cantidad: String(Number(x.cantidad) + 1) } : x))
+        : [...xs, { productoId: id, cantidad: '1' }],
+    )
   }
+  const cambiarCantidad = (id: string, cantidad: string) => setItems((xs) => xs.map((x) => (x.productoId === id ? { ...x, cantidad } : x)))
+  const quitarProducto = (id: string) => setItems((xs) => xs.filter((x) => x.productoId !== id))
 
   const totalSimulado = simulacion ? (simulacion.modalidad === 'FIN_DE_MES' ? simulacion.total : simulacion.totalPagar) : null
 
@@ -165,12 +172,12 @@ export default function NuevaVenta() {
 
             <section className="space-y-3">
               <Paso n={2}>Qué</Paso>
-              <Campo etiqueta="Producto o servicio" ayuda="Se cobra al precio de lista (crédito). Escribe para buscar por nombre o marca.">
+              <Campo etiqueta="Agregar producto o servicio" ayuda="Cada producto elegido se suma a la boleta al precio de lista (crédito). Escribe para buscar por nombre o marca.">
                 <Buscador
                   placeholder="Buscar producto o marca…"
                   vacio="Ningún producto coincide."
-                  valor={productoId}
-                  onChange={elegirProducto}
+                  valor=""
+                  onChange={agregarProducto}
                   opciones={productos.map((p) => ({
                     id: p.id,
                     titulo: p.nombre,
@@ -195,26 +202,48 @@ export default function NuevaVenta() {
                         </>
                       ),
                     }))}
-                    valor={productoId}
-                    onChange={elegirProducto}
+                    valor=""
+                    onChange={agregarProducto}
                   />
                 </div>
               )}
-              <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
-                <Campo etiqueta="Cantidad" ayuda="Número de unidades.">
-                  <Stepper etiqueta="Cantidad" valor={cantidad} onChange={setCantidad} />
-                </Campo>
-                <Campo etiqueta="Fecha y hora de compra" ayuda="Hora de Lima. Puedes registrar compras pasadas (al pasar el cuaderno), nunca futuras.">
-                  <input type="datetime-local" value={fechaHora} max={ahoraLocal()} onChange={(e) => setFechaHora(e.target.value)} required />
-                </Campo>
+              <div>
+                <p className="mb-1 text-sm font-bold">Boleta</p>
+                {lineas.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-linea p-3 text-sm text-tinta-suave">Aún no hay productos. Elige uno arriba para agregarlo.</p>
+                ) : (
+                  <ul className="border-t border-dashed border-linea">
+                    {lineas.map((l) => (
+                      <li key={l.productoId} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-dashed border-linea py-2">
+                        <div className="min-w-0 flex-1 basis-40">
+                          <p className="font-bold">{l.producto.nombre}</p>
+                          <p className="text-xs text-tinta-suave tabular-nums">{dinero(l.producto.precio_lista)} c/u</p>
+                        </div>
+                        <Stepper etiqueta={`Cantidad de ${l.producto.nombre}`} valor={l.cantidad} onChange={(v) => cambiarCantidad(l.productoId, v)} />
+                        <span className="ml-auto w-24 text-right font-bold tabular-nums">{dinero(l.subtotal)}</span>
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${l.producto.nombre} de la boleta`}
+                          onClick={() => quitarProducto(l.productoId)}
+                          className="flex size-11 items-center justify-center rounded-lg text-tinta-suave hover:bg-papel-borde/60"
+                        >
+                          <Trash2 aria-hidden="true" className="size-5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
+              <Campo etiqueta="Fecha y hora de compra" ayuda="Hora de Lima. Puedes registrar compras pasadas (al pasar el cuaderno), nunca futuras.">
+                <input type="datetime-local" value={fechaHora} max={ahoraLocal()} onChange={(e) => setFechaHora(e.target.value)} required />
+              </Campo>
             </section>
 
             <section className="space-y-3">
               <Paso n={3}>Cómo paga</Paso>
               <Campo
                 etiqueta="Forma de pago"
-                ayuda="Fin de mes: una sola armada en la fecha de pago. En cuotas: método francés, la primera cuota vence el mes siguiente a la fecha de pago del ciclo."
+                ayuda="Se elige para toda la boleta. Fin de mes: una sola armada en la fecha de pago. En cuotas: método francés, la primera cuota vence el mes siguiente a la fecha de pago del ciclo."
               >
                 <Segmentado
                   etiqueta="Forma de pago"
@@ -225,13 +254,11 @@ export default function NuevaVenta() {
                       valor: 'F',
                       titulo: 'Fin de mes',
                       detalle: simulacion ? `Un pago el ${formatearFecha(simulacion.fechaPago)}` : cliente ? `Un pago el día ${cliente.dia_pago}${pagoMesSiguiente(cliente.dia_corte, cliente.dia_pago) ? ' del mes siguiente' : ''}` : 'Un solo pago',
-                      deshabilitado: producto?.modalidad_venta === 1,
                     },
                     {
                       valor: 'C',
                       titulo: 'En cuotas',
                       detalle: `Hasta ${cliente?.plazo_max_meses ?? '—'} meses`,
-                      deshabilitado: producto?.modalidad_venta === 0,
                     },
                   ]}
                 />
@@ -256,7 +283,7 @@ export default function NuevaVenta() {
               errorSimulacion ? (
                 <p className="mt-2 text-sm font-bold text-vencido">{errorSimulacion}</p>
               ) : (
-                <p className="mt-2 text-sm text-tinta-suave">Elige cliente y producto para ver el cálculo.</p>
+                <p className="mt-2 text-sm text-tinta-suave">Elige cliente y agrega productos para ver el cálculo.</p>
               )
             ) : (
               <div className="mt-2 space-y-3">
@@ -267,7 +294,12 @@ export default function NuevaVenta() {
                   <Etiqueta color={simulacion.trasladada ? 'ambar' : 'verde'}>{simulacion.trasladada ? 'pasa al mes siguiente' : 'entra en este ciclo'}</Etiqueta>
                 </div>
                 <dl className="divide-y divide-dashed divide-linea border-y border-dashed border-linea text-sm">
-                  <FilaTicket etiqueta="Capital">{dinero(simulacion.capital)}</FilaTicket>
+                  {lineas.map((l) => (
+                    <FilaTicket key={l.productoId} etiqueta={`${l.producto.nombre} × ${l.cantidad}`}>
+                      {dinero(l.subtotal)}
+                    </FilaTicket>
+                  ))}
+                  <FilaTicket etiqueta="Capital (total boleta)">{dinero(simulacion.capital)}</FilaTicket>
                   {simulacion.modalidad === 'FIN_DE_MES' ? (
                     <>
                       <FilaTicket etiqueta="Días de interés">{simulacion.dias}</FilaTicket>

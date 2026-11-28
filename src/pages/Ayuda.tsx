@@ -27,7 +27,7 @@ const PREGUNTAS = [
   },
   {
     p: '¿Por qué una venta fue rechazada?',
-    r: 'Porque la deuda vigente más la nueva compra supera el límite de crédito del cliente, o porque el número de cuotas excede su plazo máximo, o el producto no admite esa modalidad.',
+    r: 'Porque la deuda vigente más la nueva compra supera el límite de crédito del cliente, o porque el número de cuotas excede su plazo máximo.',
   },
   {
     p: 'Olvidé mi contraseña',

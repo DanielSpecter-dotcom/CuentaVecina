@@ -24,7 +24,7 @@ const AYUDA = `
 - Compras en cuotas: método francés vencido simple ordinario (meses de 30 días). Desde la compra hasta la fecha de pago del ciclo hay período de gracia total: esos intereses se capitalizan y luego se calcula la cuota constante. Las cuotas vencen en la fecha de pago de los meses siguientes.
 - Pago tarde: se agrega "Intereses por mora": la tasa moratoria pactada sobre el total que debió pagarse, por los días de atraso. Orden de imputación del pago: mora → interés compensatorio → capital.
 - Pagos parciales: no se aceptan. Solo el total del período, y los períodos se pagan en orden (primero el más antiguo).
-- Venta rechazada: la deuda vigente más la nueva compra supera el límite de crédito, o las cuotas exceden el plazo máximo, o el producto no admite esa modalidad.
+- Venta rechazada: la deuda vigente más la nueva compra supera el límite de crédito, o las cuotas exceden el plazo máximo.
 - Olvidé mi contraseña: los clientes le piden a su tienda que la restablezca (Clientes → Restablecer contraseña). Los administradores de negocio, al administrador del sistema.
 - Errores técnicos: anotar qué se hacía y la hora, y escribir al administrador del sistema (todo queda en auditoría).
 - Moneda: todos los créditos y precios están en soles (S/).`
@@ -47,7 +47,7 @@ async function datosCliente(db: any, clienteId: string) {
     db.rpc('periodos_pendientes', { p_cliente_id: clienteId }),
     db
       .from('ventas')
-      .select('fecha_compra, cantidad, monto_capital, modalidad_pago, num_cuotas, valor_cuota, fecha_pago_pactada, estado_pago, productos(nombre)')
+      .select('fecha_compra, monto_capital, modalidad_pago, num_cuotas, valor_cuota, fecha_pago_pactada, estado_pago, venta_items(cantidad, productos(nombre))')
       .eq('cliente_id', clienteId)
       .order('fecha_hora_compra', { ascending: false })
       .limit(30),
