@@ -48,7 +48,7 @@ export default function RegistroNegocio() {
     <main className="cuaderno min-h-screen px-4 pt-10">
       <div className="mx-auto max-w-2xl space-y-6">
         <Link to="/login" className="inline-block rounded-lg" aria-label="CuentaVecina — volver a iniciar sesión">
-          <Logo />
+          <Logo className="h-10 sm:h-12" />
         </Link>
         <div className="rounded-2xl border-2 border-tinta bg-white px-4 pt-5 shadow-[4px_4px_0_var(--color-tinta)]">
           <h1 className="text-2xl font-extrabold">Registra tu negocio</h1>

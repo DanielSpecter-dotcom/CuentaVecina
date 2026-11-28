@@ -38,7 +38,7 @@ export default function Instalacion() {
   return (
     <main className="cuaderno min-h-screen py-10 pr-4 pl-15">
       <div className="mx-auto flex max-w-md flex-col gap-6">
-        <Logo />
+        <Logo className="h-10 sm:h-12" />
         <div className="space-y-4 rounded-2xl border-2 border-tinta bg-white p-5 shadow-[4px_4px_0_var(--color-tinta)]">
           <p className="text-xs font-bold tracking-[0.12em] text-vencido uppercase">Paso 1 de la puesta en marcha</p>
           <h1 className="text-2xl font-extrabold">Configuración inicial</h1>

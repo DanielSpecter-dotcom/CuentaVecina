@@ -1,3 +1,4 @@
+import type { Venta } from '../types'
 import { pagoMesSiguiente } from './motorFinanciero'
 
 /** Todos los montos de la app están en soles (S/). */
@@ -18,3 +19,6 @@ export function tasaPct(fraccion: number | null | undefined, decimales = 7): str
 export function textoCortePago(diaCorte: number, diaPago: number): string {
   return `día ${diaCorte} / día ${diaPago}${pagoMesSiguiente(diaCorte, diaPago) ? ' del mes siguiente' : ''}`
 }
+
+/** "Arroz × 2, Aceite × 1": las líneas de la boleta. */
+export const detalleVenta = (v: Pick<Venta, 'venta_items'>) => (v.venta_items ?? []).map((i) => `${i.productos?.nombre ?? '—'} × ${i.cantidad}`).join(', ')

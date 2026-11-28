@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState, type SubmitEvent } from 'react'
 import { Plus } from 'lucide-react'
-import { Segmentado } from '../../components/cuaderno'
 import { Alerta, Boton, Campo, Etiqueta, Modal, PieModal, Tarjeta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
-import { MODALIDADES_PRODUCTO } from '../../lib/codigos'
 import { dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
 import type { Producto } from '../../types'
@@ -16,7 +14,6 @@ const vacio = {
   unidad_medida: 'Unidad',
   precio_contado: '',
   precio_lista: '',
-  modalidad_venta: 2,
   imagen_url: '' as string | null,
 }
 type Form = typeof vacio & { id?: string }
@@ -67,7 +64,6 @@ export default function Productos() {
         unidad_medida: form.unidad_medida,
         precio_contado: Number(form.precio_contado),
         precio_lista: Number(form.precio_lista),
-        modalidad_venta: Number(form.modalidad_venta),
         imagen_url,
       }
       const r = form.id ? await supabase.from('productos').update(fila).eq('id', form.id) : await supabase.from('productos').insert(fila)
@@ -146,10 +142,7 @@ export default function Productos() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Etiqueta>{MODALIDADES_PRODUCTO[p.modalidad_venta]?.nombre}</Etiqueta>
-                  {estadoDe(p)}
-                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">{estadoDe(p)}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <Boton variante="fantasma" aria-label={`Editar ${p.nombre}`} onClick={() => editar(p)}>
                     Editar
@@ -174,7 +167,6 @@ export default function Productos() {
                     <th>Unidad</th>
                     <th className="text-right">Contado</th>
                     <th className="text-right">Crédito (lista)</th>
-                    <th>Modalidad</th>
                     <th>Estado</th>
                     <th>
                       <span className="sr-only">Acciones</span>
@@ -192,7 +184,6 @@ export default function Productos() {
                       <td>{p.unidad_medida}</td>
                       <td className="text-right text-tinta-suave">{dinero(p.precio_contado)}</td>
                       <td className="text-right font-bold">{dinero(p.precio_lista)}</td>
-                      <td className="text-xs">{MODALIDADES_PRODUCTO[p.modalidad_venta]?.nombre}</td>
                       <td>{estadoDe(p)}</td>
                       <td className="space-x-1 text-right whitespace-nowrap">
                         <Boton variante="fantasma" aria-label={`Editar ${p.nombre}`} onClick={() => editar(p)}>
@@ -236,18 +227,6 @@ export default function Productos() {
               </Campo>
               <Campo etiqueta="Precio de lista — crédito (S/)" ayuda="Precio que se usa en las ventas a crédito. Debe ser mayor o igual al precio al contado.">
                 <input type="number" step="0.01" min="0.01" value={form.precio_lista} onChange={set('precio_lista')} required />
-              </Campo>
-              <Campo
-                etiqueta="Modalidad de venta a crédito"
-                ayuda="Si se puede vender para pagar en una sola armada a fin de mes (fecha de pago), en cuotas mensuales, o de ambas formas."
-                className="sm:col-span-2"
-              >
-                <Segmentado
-                  etiqueta="Modalidad de venta a crédito"
-                  valor={Number(form.modalidad_venta)}
-                  onChange={(v) => setForm({ ...form, modalidad_venta: v })}
-                  opciones={MODALIDADES_PRODUCTO.map((m) => ({ valor: m.codigo as number, titulo: m.nombre }))}
-                />
               </Campo>
               <Campo etiqueta="Imagen" opcional ayuda="PNG, JPG o WEBP de hasta 2 MB. Si no eliges otra, se conserva la actual." className="sm:col-span-2">
                 <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />

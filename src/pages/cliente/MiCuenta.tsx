@@ -6,11 +6,11 @@ import { EstadoCuentaVista, HojaEstadoCuenta, Prelacion } from '../../components
 import { Alerta, Dato, Etiqueta, Vacio } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { diffDias, formatearFecha, hoyLima } from '../../lib/fechas'
-import { dinero } from '../../lib/formato'
+import { detalleVenta, dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
 import type { Cliente, Cuota, EstadoCuenta, Pago, PeriodoPendiente, Venta } from '../../types'
 
-const diaSemana = (fecha: string) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', weekday: 'long' }).format(new Date(`${fecha}T00:00:00Z`))
+const diaSemana =(fecha: string) => new Intl.DateTimeFormat('es-PE', { timeZone: 'UTC', weekday: 'long' }).format(new Date(`${fecha}T00:00:00Z`))
 
 export default function MiCuenta() {
   const { perfil, tienda } = useAuth()
@@ -33,7 +33,7 @@ export default function MiCuenta() {
       const [c, p, v, q, h, d] = await Promise.all([
         supabase.from('clientes').select('*').eq('id', id).single(),
         supabase.rpc('periodos_pendientes', { p_cliente_id: id }),
-        supabase.from('ventas').select('*, productos(nombre)').eq('cliente_id', id).order('fecha_hora_compra', { ascending: false }),
+        supabase.from('ventas').select('*, venta_items(cantidad, productos(nombre))').eq('cliente_id', id).order('fecha_hora_compra', { ascending: false }),
         supabase.from('cuotas').select('*').order('numero_cuota'),
         supabase.from('pagos').select('*').eq('cliente_id', id).order('fecha_efectiva_pago', { ascending: false }),
         supabase.rpc('fn_deuda_vigente', { p_cliente_id: id }),
@@ -153,7 +153,7 @@ export default function MiCuenta() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-display text-lg font-bold">{v.productos?.nombre}</h3>
+                            <h3 className="font-display text-lg font-bold">{detalleVenta(v)}</h3>
                             <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
                           </div>
                           <p className="text-sm text-tinta-suave">
@@ -274,11 +274,12 @@ export default function MiCuenta() {
                         margen={<MargenFecha fecha={v.fecha_compra} repetida={i > 0 && ventas[i - 1].fecha_compra === v.fecha_compra} />}
                         titulo={
                           <>
-                            {v.productos?.nombre} &times; {v.cantidad}
+                            {detalleVenta(v)}
                           </>
                         }
                         detalle={
                           <>
+                            {Number(v.pago_inicial) > 0 && `Cuota inicial ${dinero(v.pago_inicial)} · `}
                             {v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`} ·{' '}
                             <span className={v.estado_pago === 'pagado' ? 'text-pagado' : ''}>{v.estado_pago}</span>
                           </>

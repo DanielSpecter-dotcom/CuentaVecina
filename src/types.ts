@@ -36,7 +36,6 @@ export interface Producto {
   imagen_url: string | null
   precio_contado: number
   precio_lista: number
-  modalidad_venta: number
   estado: boolean
 }
 
@@ -67,13 +66,11 @@ export interface Cliente {
 export interface Venta {
   id: string
   cliente_id: string
-  producto_id: string
-  cantidad: number
-  precio_unitario: number | null
   fecha_compra: string
   fecha_hora_compra: string
   modalidad_pago: boolean
   num_cuotas: number | null
+  pago_inicial: number
   monto_capital: number
   interes_compensatorio: number
   capital_capitalizado: number | null
@@ -81,7 +78,7 @@ export interface Venta {
   fecha_pago_pactada: string
   traslado_periodo: boolean
   estado_pago: 'pendiente' | 'pagado'
-  productos?: { nombre: string } | null
+  venta_items?: { cantidad: number; productos: { nombre: string } | null }[]
 }
 
 export interface Cuota {

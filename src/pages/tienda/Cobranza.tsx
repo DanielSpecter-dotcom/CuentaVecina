@@ -6,9 +6,9 @@ import { Alerta, Boton, Campo, Etiqueta, Tarjeta, Vacio } from '../../components
 import { useAuth } from '../../context/AuthContext'
 import { describirTasa } from '../../lib/codigos'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
-import { dinero } from '../../lib/formato'
+import { detalleVenta, dinero } from '../../lib/formato'
 import { mensajeError, supabase } from '../../lib/supabase'
-import type { Cliente, EstadoCuenta, Pago, PeriodoPendiente } from '../../types'
+import type { Cliente, EstadoCuenta, Pago, PeriodoPendiente, Venta } from '../../types'
 
 export default function Cobranza() {
   const { tienda } = useAuth()
@@ -17,7 +17,7 @@ export default function Cobranza() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   // Los datos guardan de qué cliente/consulta son: así no hace falta vaciarlos dentro del efecto
   // y una respuesta tardía de otro cliente nunca se muestra.
-  const [datos, setDatos] = useState<{ id: string; periodos: PeriodoPendiente[]; pagos: Pago[] } | null>(null)
+  const [datos, setDatos] = useState<{ id: string; periodos: PeriodoPendiente[]; pagos: Pago[]; ventas: Venta[] } | null>(null)
   const [version, setVersion] = useState(0)
   const [fechaPago, setFechaPago] = useState<string>(params.get('fecha') ?? '')
   const [fechaEfectiva, setFechaEfectiva] = useState(hoyLima())
@@ -34,18 +34,20 @@ export default function Cobranza() {
 
   const periodos = datos?.id === clienteId ? datos.periodos : []
   const pagos = datos?.id === clienteId ? datos.pagos : []
+  const ventas = datos?.id === clienteId ? datos.ventas : []
   const claveEc = `${clienteId}|${fechaPago}|${fechaEfectiva}|${version}`
   const ec = ecDe?.clave === claveEc ? ecDe.ec : null
 
   const cargarCliente = useCallback(async () => {
     if (!clienteId) return
-    const [p, h] = await Promise.all([
+    const [p, h, v] = await Promise.all([
       supabase.rpc('periodos_pendientes', { p_cliente_id: clienteId }),
       supabase.from('pagos').select('*').eq('cliente_id', clienteId).order('fecha_efectiva_pago', { ascending: false }),
+      supabase.from('ventas').select('*, venta_items(cantidad, productos(nombre))').eq('cliente_id', clienteId).order('fecha_hora_compra', { ascending: false }),
     ])
     if (p.error) setError(mensajeError(p.error))
     const lista = (p.data as PeriodoPendiente[]) ?? []
-    setDatos({ id: clienteId, periodos: lista, pagos: (h.data as Pago[]) ?? [] })
+    setDatos({ id: clienteId, periodos: lista, pagos: (h.data as Pago[]) ?? [], ventas: (v.data as Venta[]) ?? [] })
     setFechaPago((actual) => (lista.some((x) => x.fecha_pago === actual) ? actual : (lista[0]?.fecha_pago ?? '')))
   }, [clienteId])
 
@@ -268,6 +270,66 @@ export default function Cobranza() {
                             <td className="text-right">{dinero(p.interes_compensatorio)}</td>
                             <td className="text-right">{dinero(p.capital)}</td>
                             <td className="text-right font-bold">{dinero(p.monto_pagado)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Tarjeta>
+            </section>
+          )}
+
+          {/* Compras del cliente: el pago en efectivo de cada boleta y lo que quedó a crédito. */}
+          {clienteId && (
+            <section aria-label="Historial de compras" className="no-imprimir">
+              <Hoja className="sm:hidden">
+                <RenglonTitulo titulo="Historial de compras" />
+                {ventas.length === 0 ? (
+                  <p className="flex h-14 items-center pl-15 text-sm text-tinta-suave">Aún no hay compras.</p>
+                ) : (
+                  <ul>
+                    {ventas.map((v) => (
+                      <Renglon
+                        key={v.id}
+                        margen={<MargenFecha fecha={v.fecha_compra} />}
+                        titulo={detalleVenta(v)}
+                        detalle={`${Number(v.pago_inicial) > 0 ? `efectivo ${dinero(v.pago_inicial)} · ` : ''}crédito ${dinero(v.monto_capital)} · ${v.modalidad_pago ? `${v.num_cuotas} cuotas` : 'fin de mes'} · ${v.estado_pago}`}
+                        monto={dinero(Number(v.pago_inicial) + Number(v.monto_capital))}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </Hoja>
+              <Tarjeta titulo="Historial de compras" className="hidden sm:block">
+                {ventas.length === 0 ? (
+                  <Vacio>Aún no hay compras.</Vacio>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Compró el</th>
+                          <th>Boleta</th>
+                          <th className="text-right">Total</th>
+                          <th className="text-right">Efectivo</th>
+                          <th className="text-right">A crédito</th>
+                          <th>Forma de pago</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ventas.map((v) => (
+                          <tr key={v.id}>
+                            <td>{formatearFecha(v.fecha_compra)}</td>
+                            <td>{detalleVenta(v)}</td>
+                            <td className="text-right font-bold">{dinero(Number(v.pago_inicial) + Number(v.monto_capital))}</td>
+                            <td className="text-right">{Number(v.pago_inicial) > 0 ? dinero(v.pago_inicial) : '—'}</td>
+                            <td className="text-right">{dinero(v.monto_capital)}</td>
+                            <td>{v.modalidad_pago ? `${v.num_cuotas} cuotas` : `Fin de mes (${formatearFecha(v.fecha_pago_pactada)})`}</td>
+                            <td>
+                              <Etiqueta color={v.estado_pago === 'pagado' ? 'verde' : 'ambar'}>{v.estado_pago}</Etiqueta>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

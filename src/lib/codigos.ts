@@ -27,13 +27,6 @@ export function describirTasa(nominal: boolean, valor: number, periodo: number, 
 /** Moneda del crédito: la app trabaja solo en soles. */
 export const MONEDA_CREDITO = 'Soles (S/)'
 
-/** productos.modalidad_venta */
-export const MODALIDADES_PRODUCTO = [
-  { codigo: 0, nombre: 'Solo pago a fin de mes' },
-  { codigo: 1, nombre: 'Solo en cuotas' },
-  { codigo: 2, nombre: 'Fin de mes o cuotas' },
-] as const
-
 export function aTasa(nominal: boolean, valor: number, periodo: number, cap: number | null): Tasa {
   return {
     tipo: nominal ? 'NOMINAL' : 'EFECTIVA',
