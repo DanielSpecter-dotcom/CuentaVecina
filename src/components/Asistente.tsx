@@ -8,6 +8,13 @@ interface Mensaje {
   content: string
 }
 
+const SUGERENCIAS = ['¿Cuánto debo y cuándo pago?', '¿Cómo se calculan los intereses?', '¿Qué pasa si pago tarde?']
+
+/** El modelo a veces responde con **negritas** o *cursivas* de Markdown: negrita real y sin asteriscos sueltos. */
+function conNegritas(texto: string) {
+  return texto.split(/\*\*(.+?)\*\*/g).map((parte, i) => (i % 2 ? <strong key={i}>{parte}</strong> : parte.replace(/(^|\s)\*(\S[^*\n]*?)\*/g, '$1$2')))
+}
+
 /** Chat flotante con el asistente (Edge Function "asistente"). El historial vive solo en memoria. */
 export function Asistente() {
   const [abierto, setAbierto] = useState(false)
@@ -45,9 +52,12 @@ export function Asistente() {
     if (el) el.scrollTop = el.scrollHeight
   }, [mensajes, cargando, error])
 
-  async function enviar(e: SubmitEvent) {
+  function enviar(e: SubmitEvent) {
     e.preventDefault()
-    const pregunta = texto.trim()
+    preguntar(texto.trim())
+  }
+
+  async function preguntar(pregunta: string) {
     if (!pregunta || cargando) return
     const lista: Mensaje[] = [...mensajes, { role: 'user', content: pregunta }]
     setMensajes(lista)
@@ -64,52 +74,71 @@ export function Asistente() {
     }
   }
 
+  if (!abierto) return null
   return (
-    <div className="no-imprimir fixed right-4 bottom-4 z-40 flex flex-col items-end gap-3 max-md:inset-x-0 max-md:bottom-0">
-      {abierto && (
-        <section
-          aria-label="Asistente de CuentaVecina"
-          className="flex h-128 max-h-[calc(100dvh-6rem)] w-88 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-papel-borde bg-papel shadow-xl max-md:h-[92dvh] max-md:max-h-none max-md:w-full max-md:max-w-none max-md:rounded-b-none max-md:rounded-t-3xl"
-        >
-          <header className="flex items-center justify-between bg-tinta px-4 py-2 text-papel">
+    <div className="no-imprimir">
+      {/* Celular: fondo oscuro detrás de la hoja; tocarlo cierra el asistente. */}
+      <button type="button" aria-label="Cerrar asistente" tabIndex={-1} onClick={() => setAbierto(false)} className="fixed inset-0 z-50 bg-tinta/40 md:hidden" />
+      {/* Escritorio: panel flotante amplio abajo a la derecha. Celular: hoja inferior de ~3/4 de pantalla. */}
+      <section
+        aria-label="Asistente de CuentaVecina"
+        className="fixed right-6 bottom-6 z-50 flex h-[min(42rem,calc(100dvh-7rem))] w-[min(28rem,calc(100vw-3rem))] flex-col overflow-hidden rounded-2xl border border-papel-borde bg-papel shadow-2xl lg:w-120 max-md:inset-x-0 max-md:right-auto max-md:bottom-0 max-md:h-[min(75dvh,38rem)] max-md:w-full max-md:rounded-b-none max-md:rounded-t-3xl"
+      >
+        <header className="flex items-center justify-between gap-3 bg-tinta py-2 pr-2 pl-4 text-papel">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-papel">Asistente</h2>
-            <button onClick={() => setAbierto(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-papel hover:bg-white/10" aria-label="Cerrar asistente">
-              <X aria-hidden="true" className="size-6" />
-            </button>
-          </header>
-          <div ref={caja} className="flex-1 space-y-3 overflow-y-auto p-4 text-sm" aria-live="polite">
-            {mensajes.length === 0 && (
-              <p className="text-tinta-suave">Pregúntame sobre CuentaVecina o tu cuenta: cuánto debes, cuándo pagas, cómo se calculan los intereses…</p>
-            )}
-            {mensajes.map((m, i) => (
-              <p
-                key={i}
-                className={`max-w-[85%] rounded-2xl px-3 py-2 whitespace-pre-wrap ${
-                  m.role === 'user' ? 'ml-auto bg-tinta text-papel' : 'border border-papel-borde bg-white text-tinta'
-                }`}
-              >
-                {m.content}
-              </p>
-            ))}
-            {cargando && <p className="text-tinta-suave" role="status">Escribiendo…</p>}
-            {error && <p className="font-bold text-vencido" role="alert">{error}</p>}
+            <p className="text-xs text-papel-tenue">Solo responde sobre CuentaVecina y tu cuenta</p>
           </div>
-          <form onSubmit={enviar} className="flex gap-2 border-t border-papel-borde p-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-            <input
-              ref={campo}
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              placeholder="Escribe tu pregunta"
-              aria-label="Pregunta"
-              maxLength={2000}
-              className="min-w-0 flex-1"
-            />
-            <Boton type="submit" disabled={cargando || !texto.trim()} className="px-3">
-              Enviar
-            </Boton>
-          </form>
-        </section>
-      )}
+          <button onClick={() => setAbierto(false)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-papel hover:bg-white/10" aria-label="Cerrar asistente">
+            <X aria-hidden="true" className="size-6" />
+          </button>
+        </header>
+        <div ref={caja} className="flex-1 space-y-3 overflow-y-auto p-4 text-sm md:text-[15px]" aria-live="polite">
+          {mensajes.length === 0 && (
+            <div className="space-y-3">
+              <p className="text-tinta-suave">Pregúntame sobre CuentaVecina o tu cuenta: cuánto debes, cuándo pagas, cómo se calculan los intereses…</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGERENCIAS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => preguntar(s)}
+                    className="min-h-11 rounded-full border-[1.5px] border-linea bg-white px-3.5 text-left text-sm font-bold hover:border-tinta"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {mensajes.map((m, i) => (
+            <p
+              key={i}
+              className={`max-w-[85%] rounded-2xl px-3 py-2 whitespace-pre-wrap ${
+                m.role === 'user' ? 'ml-auto bg-tinta text-papel' : 'border border-papel-borde bg-white text-tinta'
+              }`}
+            >
+              {m.role === 'assistant' ? conNegritas(m.content) : m.content}
+            </p>
+          ))}
+          {cargando && <p className="text-tinta-suave" role="status">Escribiendo…</p>}
+          {error && <p className="font-bold text-vencido" role="alert">{error}</p>}
+        </div>
+        <form onSubmit={enviar} className="flex gap-2 border-t border-papel-borde p-3 max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <input
+            ref={campo}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Escribe tu pregunta"
+            aria-label="Pregunta"
+            maxLength={2000}
+            className="min-w-0 flex-1"
+          />
+          <Boton type="submit" disabled={cargando || !texto.trim()} className="px-3">
+            Enviar
+          </Boton>
+        </form>
+      </section>
     </div>
   )
 }

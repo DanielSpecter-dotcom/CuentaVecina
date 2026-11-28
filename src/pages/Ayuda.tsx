@@ -19,7 +19,7 @@ const PREGUNTAS = [
   },
   {
     p: '¿Qué pasa si el cliente paga tarde?',
-    r: 'Se agrega un ítem de "Intereses por mora": la tasa moratoria pactada aplicada al total que debió pagarse, por los días de atraso. El pago se imputa en este orden: mora → interés compensatorio → capital.',
+    r: 'Se agrega un ítem de "Intereses por mora": la tasa moratoria pactada, convertida a tasa efectiva para los días de atraso, aplicada al total que debió pagarse (no es interés simple). El pago se imputa en este orden: mora → interés compensatorio → capital.',
   },
   {
     p: '¿Se pueden hacer pagos parciales?',
