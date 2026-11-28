@@ -40,9 +40,12 @@
   /* Alto de la navegación inferior (solo móvil). BarraAccion y los avisos flotantes se apoyan encima. */
   :root {
     --alto-nav: 0px;
+    /* Espacio bajo la barra: la zona del indicador de inicio (iPhone, requiere viewport-fit=cover)
+       o, como mínimo, un respiro sobre la barra de gestos de Android. */
+    --margen-inferior: max(0.75rem, env(safe-area-inset-bottom));
   }
   :root:has(.nav-inferior) {
-    --alto-nav: calc(4rem + env(safe-area-inset-bottom));
+    --alto-nav: calc(4rem + var(--margen-inferior));
   }
   @media (width >= 48rem) {
     :root:has(.nav-inferior) {

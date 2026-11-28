@@ -164,7 +164,7 @@ export function Layout() {
         </Suspense>
       </main>
 
-      <nav aria-label="Principal" className="nav-inferior no-imprimir fixed inset-x-0 bottom-0 z-30 bg-tinta pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav aria-label="Principal" className="nav-inferior no-imprimir fixed inset-x-0 bottom-0 z-30 bg-tinta pb-(--margen-inferior) md:hidden">
         <ul className="mx-auto flex h-16 max-w-md items-center justify-evenly px-1">
           {INFERIOR[rol].map((m, i) => (
             <Fragment key={m.a}>
