@@ -76,13 +76,9 @@ function ItemInferior({ icono: Icono, texto, activo }: { icono: LucideIcon; text
   )
 }
 
-export function Logo() {
-  return (
-    <span className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight text-tinta">
-      <img src="/icons/icono-192.png" alt="" className="h-8 w-8" />
-      CuentaVecina
-    </span>
-  )
+/** Logo oficial (ícono + "CuentaVecina"). La altura va en className; el ancho sigue la proporción. */
+export function Logo({ className = 'h-9' }: { className?: string }) {
+  return <img src="/logo-cuentavecina.webp" alt="CuentaVecina" width={1200} height={258} className={`block w-auto max-w-full self-start ${className}`} />
 }
 
 export function Layout() {
@@ -109,8 +105,8 @@ export function Layout() {
             <img src="/icons/icono-192.png" alt="" className="h-8 w-8 shrink-0" />
             <span className="truncate font-display text-lg font-extrabold">{tienda?.nombre_comercial ?? 'CuentaVecina'}</span>
           </span>
-          <span className="hidden md:block">
-            <Logo />
+          <span className="hidden shrink-0 md:block">
+            <Logo className="h-8 lg:h-9" />
           </span>
           <nav aria-label="Principal" className="hidden min-w-0 flex-1 gap-1 overflow-x-auto md:flex">
             {MENU[rol].map((m) => (

@@ -2,6 +2,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Sello } from '../components/cuaderno'
+import { Logo } from '../components/Layout'
 import { Alerta, Boton, Campo } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { mensajeError, supabase } from '../lib/supabase'
@@ -41,9 +42,8 @@ export default function Login() {
       {/* Celular: una columna. Escritorio: la propuesta de valor a la izquierda y el acceso a la derecha. */}
       <div className="mx-auto grid w-full max-w-sm gap-6 lg:max-w-5xl lg:grid-cols-[1fr_24rem] lg:items-center lg:gap-x-20">
         <div>
-          <img src="/favicon.svg" alt="" className="h-14 w-14" />
-          <p className="mt-2 font-display text-4xl font-extrabold tracking-tight">CuentaVecina</p>
-          <p className="mt-1 font-display text-xl font-bold">
+          <Logo className="h-12 sm:h-14 lg:h-20" />
+          <p className="mt-4 font-display text-xl font-bold">
             <span className="resaltado">El cuaderno de fiados</span> del barrio, ahora digital.
           </p>
           <ul className="mt-8 hidden max-w-md space-y-4 text-lg lg:block">
