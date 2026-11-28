@@ -32,6 +32,7 @@ supabase/.branches
 .env.*
 !.env.example
 
+.claude
 
 /docs
 # graphify: solo versionar el grafo y el reporte
