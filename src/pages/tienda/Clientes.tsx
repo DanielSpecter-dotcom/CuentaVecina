@@ -206,11 +206,12 @@ export default function Clientes() {
       ) : (
         <>
           {/* Celular y pantallas medianas: fichas (en 2 columnas desde 640 px); la tabla solo cuando entra completa. */}
-          <ul className="grid gap-3 sm:grid-cols-2 min-[75rem]:hidden">
+          {/* grid-cols-1 = minmax(0, 1fr): sin columna explícita la ficha crece al ancho de su contenido (nombre largo) y se desborda. */}
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 min-[75rem]:hidden">
             {visibles.map((c) => {
               const perfil = usuarios.find((u) => u.cliente_id === c.id)
               return (
-                <li key={c.id} className={`rounded-2xl border border-papel-borde p-4 ${c.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
+                <li key={c.id} className={`min-w-0 rounded-2xl border border-papel-borde p-4 ${c.estado ? 'bg-white' : 'bg-papel-borde/40'}`}>
                   <div className="flex items-center gap-3">
                     <Avatar nombre={c.nombre} activo={c.estado} />
                     <div className="min-w-0 flex-1">
@@ -219,7 +220,7 @@ export default function Clientes() {
                         // El área de toque se amplía a 44 px sin mover el texto.
                         className="relative block font-bold underline-offset-4 after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] hover:underline"
                       >
-                        <span className="block truncate">{c.nombre}</span>
+                        <span className="block break-words">{c.nombre}</span>
                       </Link>
                       <p className="truncate text-xs text-tinta-suave">
                         DNI {c.documento} {c.telefono && `· ${c.telefono}`}
