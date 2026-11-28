@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Hoja, MargenFecha, MontoGrande, Renglon, RenglonTitulo, RenglonTotal, SelloVencido } from '../../components/cuaderno'
+import { Chips, Hoja, MargenFecha, MontoGrande, Renglon, RenglonTitulo, RenglonTotal, SelloVencido } from '../../components/cuaderno'
 import { PrimerosPasos } from '../../components/PrimerosPasos'
 import { Alerta, Etiqueta, Tarjeta, Vacio } from '../../components/ui'
 import { formatearFecha, hoyLima } from '../../lib/fechas'
@@ -23,10 +23,17 @@ interface Fila {
   interes: number
 }
 
+type Estado = 'vencido' | 'hoy' | 'al día'
+const ORDEN_ESTADO: Record<Estado, number> = { vencido: 0, hoy: 1, 'al día': 2 }
+const COLOR_ESTADO = { vencido: 'rojo', hoy: 'ambar', 'al día': 'gris' } as const
+const sinTildes = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+
 export default function Inicio() {
   const [filas, setFilas] = useState<Fila[]>([])
   const [numClientes, setNumClientes] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [vista, setVista] = useState<'cliente' | 'fecha'>('cliente')
+  const [busqueda, setBusqueda] = useState('')
   const hoy = hoyLima()
 
   useEffect(() => {
@@ -64,9 +71,18 @@ export default function Inicio() {
     cargar()
   }, [])
 
-  const porFecha = [...Map.groupBy(filas, (f) => f.fechaPago)]
-
   const sumar = (lista: Fila[]) => r2(lista.reduce((s, f) => s + f.capital + f.interes, 0))
+
+  // Listado: buscador (nombre o DNI, sin importar tildes) y vista por cliente o por fecha.
+  const t = sinTildes(busqueda.trim())
+  const visibles = t ? filas.filter((f) => sinTildes(`${f.cliente.nombre} ${f.cliente.documento}`).includes(t)) : filas
+  const porFecha = [...Map.groupBy(visibles, (f) => f.fechaPago)]
+  const estadoDe = (fecha: string): Estado => (fecha < hoy ? 'vencido' : fecha === hoy ? 'hoy' : 'al día')
+  // Por cliente: primero los vencidos, luego los de hoy y después por fecha más próxima.
+  const porCliente = [...Map.groupBy(visibles, (f) => f.cliente.id).values()]
+    .map((lista) => ({ cliente: lista[0].cliente, lista, total: sumar(lista), estado: estadoDe(lista[0].fechaPago) }))
+    .sort((a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || a.lista[0].fechaPago.localeCompare(b.lista[0].fechaPago) || a.cliente.nombre.localeCompare(b.cliente.nombre))
+  const totalVisible = sumar(visibles)
   const vencidas = filas.filter((f) => f.fechaPago < hoy)
   const deHoy = filas.filter((f) => f.fechaPago === hoy)
   const total = sumar(filas)
@@ -163,96 +179,212 @@ export default function Inicio() {
           .
         </Vacio>
       ) : (
-        <>
-          {/* Celular: el cuaderno, un renglón por cliente y fecha de pago. */}
-          <Hoja className="sm:hidden">
-            <RenglonTitulo titulo="El cuaderno" />
-            <ul>
-              {filas.map((f, i) => {
-                const venc = f.fechaPago < hoy
-                const repetida = i > 0 && filas[i - 1].fechaPago === f.fechaPago
-                const chipHoy = f.fechaPago === hoy && !repetida
-                return (
-                  <Renglon
-                    key={`${f.fechaPago}|${f.cliente.id}`}
-                    href={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${f.fechaPago}`}
-                    margen={
-                      chipHoy ? (
-                        <>
-                          <span aria-hidden="true">hoy</span>
-                          <span className="sr-only">{formatearFecha(f.fechaPago)}</span>
-                        </>
-                      ) : (
-                        <MargenFecha fecha={f.fechaPago} repetida={repetida} />
-                      )
-                    }
-                    tonoMargen={chipHoy ? 'hoy' : venc ? 'vencido' : 'normal'}
-                    titulo={f.cliente.nombre}
-                    detalle={`${f.items} ${f.items === 1 ? 'ítem' : 'ítems'} · cap. ${dinero(f.capital)} · int. ${dinero(f.interes)}`}
-                    monto={dinero(f.capital + f.interes)}
-                    tonoMonto={venc ? 'vencido' : 'normal'}
-                  />
-                )
-              })}
-            </ul>
-            <RenglonTotal etiqueta="Total">{dinero(total)}</RenglonTotal>
-          </Hoja>
+        <section aria-labelledby="titulo-listado" className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="titulo-listado" className="font-display text-xl font-bold">
+              Listado de pagos
+            </h2>
+            <Chips
+              etiqueta="Agrupar el listado"
+              opciones={[
+                { valor: 'cliente', texto: 'Por cliente' },
+                { valor: 'fecha', texto: 'Por fecha' },
+              ]}
+              valor={vista}
+              onChange={setVista}
+            />
+          </div>
+          <input
+            type="search"
+            aria-label="Buscar vecino por nombre o DNI"
+            placeholder="Buscar por nombre o DNI…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full"
+          />
 
-          <Tarjeta titulo="Listado de pagos por fecha de pago" className="hidden sm:block">
-            {/* Una sola tabla: cada fecha de pago es un grupo con su fila de título; el encabezado no se repite. */}
-            <div className="overflow-x-auto">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th className="text-right">Ítems</th>
-                    <th className="text-right">Capital</th>
-                    <th className="text-right">Interés</th>
-                    <th className="text-right">Total</th>
-                  </tr>
-                </thead>
-                {porFecha.map(([fecha, lista]) => (
-                  <tbody key={fecha}>
-                    <tr>
-                      <th colSpan={5} scope="rowgroup" className="bg-papel pt-4 text-sm tracking-normal text-tinta normal-case">
-                        <span className="flex items-center gap-2">
-                          Pago del {formatearFecha(fecha)}
-                          {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
-                        </span>
-                      </th>
-                    </tr>
-                    {lista.map((f) => {
-                      return (
-                        <tr key={f.cliente.id}>
-                          <td>
-                            <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="font-bold underline-offset-4 hover:underline">
-                              {f.cliente.nombre}
+          {visibles.length === 0 ? (
+            <Vacio>Ningún vecino coincide con "{busqueda}".</Vacio>
+          ) : vista === 'cliente' ? (
+            <>
+              {/* Una tarjeta por cliente: resumen arriba y sus fechas de pago al desplegar (abiertas si hay algo vencido o de hoy). */}
+              <ul className="space-y-3">
+                {porCliente.map(({ cliente, lista, total: totalCliente, estado }) => {
+                  const proxima = lista[0].fechaPago
+                  return (
+                    <li key={cliente.id} className={`overflow-hidden rounded-2xl border bg-white ${estado === 'vencido' ? 'border-vencido/40' : 'border-papel-borde'}`}>
+                      <details open={estado !== 'al día'} className="group">
+                        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 hover:bg-papel/60 [&::-webkit-details-marker]:hidden">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold">{cliente.nombre}</p>
+                            <p className="text-sm text-tinta-suave">
+                              DNI {cliente.documento} · {lista.length} {lista.length === 1 ? 'pago' : 'pagos'} ·{' '}
+                              {estado === 'vencido' ? `vencido desde ${formatearFecha(proxima)}` : `${estado === 'hoy' ? 'vence hoy' : `próximo ${formatearFecha(proxima)}`}`}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className={`font-display text-xl font-extrabold tabular-nums ${estado === 'vencido' ? 'text-vencido' : ''}`}>{dinero(totalCliente)}</p>
+                            <Etiqueta color={COLOR_ESTADO[estado]}>{estado}</Etiqueta>
+                          </div>
+                          <ChevronDown aria-hidden="true" className="size-5 shrink-0 text-tinta-suave transition-transform group-open:rotate-180" />
+                        </summary>
+
+                        <div className="border-t border-papel-borde">
+                          {/* Celular: un renglón por fecha (fecha y total; capital e interés debajo). */}
+                          <ul className="sm:hidden">
+                            {lista.map((f) => (
+                              <li
+                                key={f.fechaPago}
+                                className={`flex items-baseline justify-between gap-3 border-b border-dashed border-linea px-4 py-2.5 last:border-b-0 ${f.fechaPago <= hoy ? 'bg-resaltador-suave' : ''}`}
+                              >
+                                <div>
+                                  <p className="font-bold">{formatearFecha(f.fechaPago)}</p>
+                                  <p className="text-xs text-tinta-suave tabular-nums">
+                                    {f.items} {f.items === 1 ? 'ítem' : 'ítems'} · cap. {dinero(f.capital)} · int. {dinero(f.interes)}
+                                  </p>
+                                </div>
+                                <span className={`font-bold tabular-nums ${f.fechaPago < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {/* Tablet y escritorio: tabla de sus fechas de pago. */}
+                          <div className="hidden overflow-x-auto sm:block">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Fecha de pago</th>
+                                  <th className="text-right">Ítems</th>
+                                  <th className="text-right">Capital</th>
+                                  <th className="text-right">Interés</th>
+                                  <th className="text-right">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {lista.map((f) => (
+                                  <tr key={f.fechaPago} className={f.fechaPago <= hoy ? 'bg-resaltador-suave' : ''}>
+                                    <td className="font-bold">{formatearFecha(f.fechaPago)}</td>
+                                    <td className="text-right">{f.items}</td>
+                                    <td className="text-right">{dinero(f.capital)}</td>
+                                    <td className="text-right">{dinero(f.interes)}</td>
+                                    <td className={`text-right font-bold ${f.fechaPago < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex justify-end border-t border-papel-borde px-4 py-1">
+                            <Link
+                              to={`/tienda/cobranza?cliente=${cliente.id}&fecha=${proxima}`}
+                              className={`inline-flex min-h-11 items-center gap-0.5 font-bold underline underline-offset-4 ${estado === 'vencido' ? 'text-vencido' : ''}`}
+                            >
+                              Cobrar pago del {formatearFecha(proxima).slice(0, 5)}
+                              <ChevronRight aria-hidden="true" className="size-4" strokeWidth={2.5} />
                             </Link>
-                            <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
-                          </td>
-                          <td className="text-right">{f.items}</td>
-                          <td className="text-right">{dinero(f.capital)}</td>
-                          <td className="text-right">{dinero(f.interes)}</td>
-                          <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes)}</td>
+                          </div>
+                        </div>
+                      </details>
+                    </li>
+                  )
+                })}
+              </ul>
+              <p className="flex items-baseline justify-between gap-3 px-1 font-bold">
+                <span>Total{t ? ' (búsqueda)' : ' por cobrar'}</span>
+                <span className="border-b-[3px] border-double border-tinta font-display text-xl font-extrabold tabular-nums">{dinero(totalVisible)}</span>
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Celular: el cuaderno, un renglón por cliente y fecha de pago. */}
+              <Hoja className="sm:hidden">
+                <RenglonTitulo titulo="El cuaderno" />
+                <ul>
+                  {visibles.map((f, i) => {
+                    const venc = f.fechaPago < hoy
+                    const repetida = i > 0 && visibles[i - 1].fechaPago === f.fechaPago
+                    const chipHoy = f.fechaPago === hoy && !repetida
+                    return (
+                      <Renglon
+                        key={`${f.fechaPago}|${f.cliente.id}`}
+                        href={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${f.fechaPago}`}
+                        margen={
+                          chipHoy ? (
+                            <>
+                              <span aria-hidden="true">hoy</span>
+                              <span className="sr-only">{formatearFecha(f.fechaPago)}</span>
+                            </>
+                          ) : (
+                            <MargenFecha fecha={f.fechaPago} repetida={repetida} />
+                          )
+                        }
+                        tonoMargen={chipHoy ? 'hoy' : venc ? 'vencido' : 'normal'}
+                        titulo={f.cliente.nombre}
+                        detalle={`${f.items} ${f.items === 1 ? 'ítem' : 'ítems'} · cap. ${dinero(f.capital)} · int. ${dinero(f.interes)}`}
+                        monto={dinero(f.capital + f.interes)}
+                        tonoMonto={venc ? 'vencido' : 'normal'}
+                      />
+                    )
+                  })}
+                </ul>
+                <RenglonTotal etiqueta="Total">{dinero(totalVisible)}</RenglonTotal>
+              </Hoja>
+
+              <Tarjeta titulo="Por fecha de pago" className="hidden sm:block">
+                {/* Una sola tabla: cada fecha de pago es un grupo con su fila de título; el encabezado no se repite. */}
+                <div className="overflow-x-auto">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th className="text-right">Ítems</th>
+                        <th className="text-right">Capital</th>
+                        <th className="text-right">Interés</th>
+                        <th className="text-right">Total</th>
+                      </tr>
+                    </thead>
+                    {porFecha.map(([fecha, lista]) => (
+                      <tbody key={fecha}>
+                        <tr>
+                          <th colSpan={5} scope="rowgroup" className="bg-papel pt-4 text-sm tracking-normal text-tinta normal-case">
+                            <span className="flex items-center gap-2">
+                              Pago del {formatearFecha(fecha)}
+                              {fecha < hoy ? <Etiqueta color="rojo">vencido</Etiqueta> : fecha === hoy ? <Etiqueta color="ambar">hoy</Etiqueta> : null}
+                            </span>
+                          </th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                ))}
-                <tfoot>
-                  <tr className="font-bold">
-                    <td colSpan={4} className="text-right">
-                      Total
-                    </td>
-                    <td className="text-right text-base">
-                      <span className="border-b-[3px] border-double border-tinta">{dinero(total)}</span>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </Tarjeta>
-        </>
+                        {lista.map((f) => {
+                          return (
+                            <tr key={f.cliente.id}>
+                              <td>
+                                <Link to={`/tienda/cobranza?cliente=${f.cliente.id}&fecha=${fecha}`} className="font-bold underline-offset-4 hover:underline">
+                                  {f.cliente.nombre}
+                                </Link>
+                                <span className="ml-2 text-xs text-tinta-suave">DNI {f.cliente.documento}</span>
+                              </td>
+                              <td className="text-right">{f.items}</td>
+                              <td className="text-right">{dinero(f.capital)}</td>
+                              <td className="text-right">{dinero(f.interes)}</td>
+                              <td className={`text-right font-bold ${fecha < hoy ? 'text-vencido' : ''}`}>{dinero(f.capital + f.interes)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    ))}
+                    <tfoot>
+                      <tr className="font-bold">
+                        <td colSpan={4} className="text-right">
+                          Total
+                        </td>
+                        <td className="text-right text-base">
+                          <span className="border-b-[3px] border-double border-tinta">{dinero(totalVisible)}</span>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </Tarjeta>
+            </>
+          )}
+        </section>
       )}
     </div>
   )
